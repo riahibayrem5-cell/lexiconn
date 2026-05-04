@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Sparkles, RefreshCw, EyeOff, Eye, BookOpen, Search, Quote as QuoteIcon, Users, Lightbulb, MapPin, Tag, Skull, ListChecks, MessageCircle, Library, Plus, X } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, EyeOff, Eye, BookOpen, Search, Quote as QuoteIcon, Users, Lightbulb, MapPin, Tag, Skull, ListChecks, MessageCircle, Library, Plus, X, Download } from "lucide-react";
+import { exportDossierPdf } from "@/lib/dossierPdf";
 import { useLibrary } from "@/lib/storage";
 import type { Book } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -340,6 +341,25 @@ function DossierFullScreen({ card, onClose }: { card: AnyBook; onClose: () => vo
               <Button size="sm" variant="ghost" className="h-7 px-2 text-[0.7rem] font-display tracking-wide" onClick={() => setRevealSpoilers(v => !v)}>
                 {revealSpoilers ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                 {revealSpoilers ? "Spoilers on" : "Spoilers off"}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-[0.7rem] font-display tracking-wide text-primary hover:text-primary"
+                onClick={async () => {
+                  try {
+                    toast.message("Composing PDF…");
+                    await exportDossierPdf({
+                      title: card.title, author: card.author, year: card.year,
+                      coverUrl: card.coverUrl,
+                      dossier: cached.dossier,
+                      generatedAt: cached.generatedAt,
+                      extendedAt: cached.extendedAt,
+                    });
+                    toast.success("PDF exported");
+                  } catch (e: any) {
+                    toast.error(e?.message ?? "PDF export failed");
+                  }
+                }}
+                title="Download a beautifully designed PDF of this dossier">
+                <Download className="h-3 w-3 mr-1" /> PDF
               </Button>
               {(cached.extensionCount ?? 0) > 0 && (
                 <Badge variant="outline" className="text-[0.6rem] tracking-wide self-center">extended ×{cached.extensionCount}</Badge>
