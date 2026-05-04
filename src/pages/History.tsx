@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Sparkles, RefreshCw, EyeOff, Eye, BookOpen, Search, Quote as QuoteIcon, Users, Lightbulb, MapPin, Tag, Skull, ListChecks, MessageCircle, Library, Plus, X } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw, EyeOff, Eye, BookOpen, Search, Quote as QuoteIcon, Users, Lightbulb, MapPin, Tag, Skull, ListChecks, MessageCircle, Library, Plus, X, Download } from "lucide-react";
+import { exportDossierPdf } from "@/lib/dossierPdf";
 import { useLibrary } from "@/lib/storage";
 import type { Book } from "@/lib/types";
 import { Button } from "@/components/ui/button";
