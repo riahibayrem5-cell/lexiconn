@@ -194,7 +194,7 @@ async function findOpenLibraryAnySize(title: string, author: string): Promise<st
 
 export interface AcquiredCover {
   url: string;
-  source: "openlibrary" | "google" | "gutendex" | "internetarchive" | "uploaded";
+  source: "openlibrary" | "google" | "gutendex" | "internetarchive" | "librarything" | "wikipedia" | "uploaded";
 }
 
 export async function acquireCover(opts: {
@@ -209,36 +209,32 @@ export async function acquireCover(opts: {
 
   type Candidate = { src: AcquiredCover["source"]; run: () => Promise<string | null> };
   const candidates: Candidate[] = [
-    // 1. The URL handed to us (from search result) — usually best
     { src: "openlibrary", run: async () => (opts.openLibraryUrl && (await urlExists(opts.openLibraryUrl))) ? opts.openLibraryUrl! : null },
-    // 2. Open Library by ISBN
     { src: "openlibrary", run: async () => {
       if (!opts.isbn) return null;
       const u = `https://covers.openlibrary.org/b/isbn/${opts.isbn}-L.jpg`;
       return (await urlExists(u)) ? u : null;
     } },
-    // 3. Google Books by ISBN — extremely accurate when available
     { src: "google", run: async () => {
       if (!opts.isbn) return null;
       const u = await findGoogleByIsbn(opts.isbn);
       return u && (await urlExists(u)) ? u : null;
     } },
-    // 4. Fresh Open Library search by title+author
+    { src: "librarything", run: () => findLibraryThingCover(opts.isbn) },
     { src: "openlibrary", run: async () => {
       const u = await findOpenLibraryCover(opts.title, opts.author);
       return u && (await urlExists(u)) ? u : null;
     } },
-    // 5. Google Books search by title+author
     { src: "google", run: async () => {
       const u = await findGoogleBooksCover(opts.title, opts.author);
       return u && (await urlExists(u)) ? u : null;
     } },
-    // 6. Gutendex / Project Gutenberg public-domain cover
+    { src: "openlibrary", run: () => findOpenLibraryAnySize(opts.title, opts.author) },
+    { src: "wikipedia", run: () => findWikipediaCover(opts.title, opts.author) },
     { src: "gutendex", run: async () => {
       const u = await findGutendexCover(opts.title, opts.author);
       return u && (await urlExists(u)) ? u : null;
     } },
-    // 7. Internet Archive service images from Open Library records
     { src: "internetarchive", run: async () => {
       const u = await findInternetArchiveCover(opts.title, opts.author);
       return u && (await urlExists(u)) ? u : null;
@@ -253,7 +249,6 @@ export async function acquireCover(opts: {
     }
   }
 
-  // No real cover found. Return null — caller will display a typographic spine.
   return null;
 }
 
