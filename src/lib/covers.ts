@@ -135,6 +135,63 @@ async function findGoogleByIsbn(isbn: string): Promise<string | null> {
   }
 }
 
+/** LibraryThing cover-by-ISBN — public, no key needed. */
+async function findLibraryThingCover(isbn?: string): Promise<string | null> {
+  if (!isbn) return null;
+  const u = `https://covers.librarything.com/devkey/large/${encodeURIComponent(isbn)}`;
+  return (await urlExists(u)) ? u : null;
+}
+
+/** Wikipedia page-image lookup — strong for canonical / classic titles. */
+async function findWikipediaCover(title: string, author: string): Promise<string | null> {
+  try {
+    const q = `${title} ${author} novel book`;
+    const search = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=1&srsearch=${encodeURIComponent(q)}`,
+    );
+    if (!search.ok) return null;
+    const sj = await search.json();
+    const pageTitle = sj.query?.search?.[0]?.title;
+    if (!pageTitle) return null;
+    const img = await fetch(
+      `https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&prop=pageimages&piprop=original&titles=${encodeURIComponent(pageTitle)}`,
+    );
+    if (!img.ok) return null;
+    const ij = await img.json();
+    const pages = ij.query?.pages ?? {};
+    const first: any = Object.values(pages)[0];
+    const src = first?.original?.source as string | undefined;
+    return src && (await urlExists(src)) ? src : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Open Library cover-edition-key fallback — finds covers L/M variants miss. */
+async function findOpenLibraryAnySize(title: string, author: string): Promise<string | null> {
+  try {
+    const url = `https://openlibrary.org/search.json?q=${encodeURIComponent(`${title} ${author}`)}&limit=10`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    for (const d of (data.docs ?? []) as any[]) {
+      if (d.cover_edition_key) {
+        const u = `https://covers.openlibrary.org/b/olid/${d.cover_edition_key}-L.jpg`;
+        if (await urlExists(u)) return u;
+      }
+      if (d.cover_i) {
+        for (const s of ["L", "M"]) {
+          const u = `https://covers.openlibrary.org/b/id/${d.cover_i}-${s}.jpg`;
+          if (await urlExists(u)) return u;
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export interface AcquiredCover {
   url: string;
   source: "openlibrary" | "google" | "gutendex" | "internetarchive" | "uploaded";
