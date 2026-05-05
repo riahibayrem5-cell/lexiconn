@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { enrichBookMetadata } from "@/lib/openlibrary";
 import { acquireCover } from "@/lib/covers";
+import { AICoverDialog } from "@/components/AICoverDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   consumeEditionApply,
