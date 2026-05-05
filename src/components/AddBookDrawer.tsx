@@ -352,6 +352,9 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
                               : coverSource === "google" ? "Google Books"
                               : coverSource === "gutendex" ? "Project Gutenberg"
                               : coverSource === "internetarchive" ? "Internet Archive"
+                              : coverSource === "librarything" ? "LibraryThing"
+                              : coverSource === "wikipedia" ? "Wikipedia"
+                              : coverSource === "ai-generated" ? "AI generated"
                               : "Uploaded"}
                     </div>
                   )}
