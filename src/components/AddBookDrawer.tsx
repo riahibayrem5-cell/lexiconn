@@ -375,6 +375,14 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
                     >
                       <Search className="h-3 w-3" /> Retry search
                     </button>
+                    {coverSource === "none" && !acquiring && (
+                      <button
+                        onClick={() => setAiCoverOpen(true)}
+                        className="inline-flex items-center gap-1.5 text-[0.65rem] mono uppercase tracking-[0.2em] text-primary hover:text-primary-glow transition-colors"
+                      >
+                        <Sparkles className="h-3 w-3" /> AI cover
+                      </button>
+                    )}
                     <button onClick={() => setPicked(null)} className="text-[0.65rem] mono uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors">
                       ← Search again
                     </button>
