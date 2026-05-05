@@ -268,6 +268,42 @@ export default function BookBrain() {
     setPending(null);
   };
 
+  // Track whether this book already has a saved dossier
+  useEffect(() => {
+    if (!book?.id) return;
+    let cancelled = false;
+    loadDossier(book.id).then(d => { if (!cancelled) setHasDossier(!!d); });
+    const refresh = () => loadDossier(book.id).then(d => !cancelled && setHasDossier(!!d));
+    window.addEventListener("lexicon-dossier-change", refresh);
+    return () => { cancelled = true; window.removeEventListener("lexicon-dossier-change", refresh); };
+  }, [book?.id]);
+
+  const generateAndSaveDossier = async () => {
+    if (!book) return;
+    if (hasDossier) {
+      navigate(`/history?open=${book.id}`);
+      return;
+    }
+    setGeneratingDossier(true);
+    try {
+      const { dossier, generatedAt } = await generateDossier({
+        title: book.title, author: book.author, year: book.year, mode: "create",
+      });
+      await saveDossierRemote({
+        bookId: book.id, title: book.title, author: book.author,
+        dossier, generatedAt,
+      });
+      setHasDossier(true);
+      toast.success("Dossier saved to your Memory Vault", {
+        action: { label: "Open", onClick: () => navigate(`/history?open=${book.id}`) },
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not generate dossier");
+    } finally {
+      setGeneratingDossier(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pb-24">
       {/* Top bar */}
