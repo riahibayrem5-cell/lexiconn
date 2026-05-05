@@ -1,129 +1,123 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Loader2, Sparkles, RefreshCw, EyeOff, Eye, BookOpen, Search, Quote as QuoteIcon, Users, Lightbulb, MapPin, Tag, Skull, ListChecks, MessageCircle, Library, Plus, X, Download } from "lucide-react";
 import { exportDossierPdf } from "@/lib/dossierPdf";
 import { useLibrary } from "@/lib/storage";
-import type { Book } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PageHeader } from "@/components/PageHeader";
 import { toast } from "sonner";
-import { generateDossier, loadDossier, loadDossierMap, saveDossierRemote, type BookDossier, type CachedDossier } from "@/lib/dossier";
-import { searchOpenLibrary, type OLResult } from "@/lib/openlibrary";
+import {
+  generateDossier,
+  loadDossier,
+  loadAllDossiers,
+  saveDossierRemote,
+  extendDossier,
+  type BookDossier,
+  type CachedDossier,
+} from "@/lib/dossier";
 import { cn } from "@/lib/utils";
 
-type Filter = "all" | "finished" | "reading" | "rereading";
+type SortMode = "recent" | "extended" | "author";
 
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: "all", label: "Everything" },
-  { key: "finished", label: "Finished" },
-  { key: "reading", label: "Reading" },
-  { key: "rereading", label: "Rereading" },
+const SORTS: { key: SortMode; label: string }[] = [
+  { key: "recent", label: "Recently composed" },
+  { key: "extended", label: "Recently extended" },
+  { key: "author", label: "By author" },
 ];
 
-// Unified card model — books from your shelf OR results pulled from the wider catalog.
-interface AnyBook {
-  id: string;            // stable dossier key
+interface VaultCard {
+  bookId: string;
   title: string;
   author: string;
   year?: number;
   coverUrl?: string;
   spineColor?: string;
-  source: "shelf" | "external";
-  shelfBook?: Book;
+  generatedAt: string;
+  extendedAt?: string;
+  extensionCount?: number;
 }
-
-const externalKey = (r: OLResult) => `ext:${r.isbn ?? r.key}`;
 
 export default function History() {
   const { books } = useLibrary();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [sort, setSort] = useState<SortMode>("recent");
   const [openId, setOpenId] = useState<string | null>(null);
-  const [haveDossier, setHaveDossier] = useState<Set<string>>(new Set());
-  const [external, setExternal] = useState<OLResult[]>([]);
-  const [searching, setSearching] = useState(false);
-  const searchSeq = useRef(0);
+  const [dossiers, setDossiers] = useState<CachedDossier[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const shelfCards: AnyBook[] = useMemo(() => books
-    .filter(b => filter === "all" ? true : b.status === filter)
-    .map(b => ({
-      id: b.id,
-      title: b.title,
-      author: b.author,
-      year: b.year,
-      coverUrl: b.coverUrl,
-      spineColor: b.spineColor,
-      source: "shelf" as const,
-      shelfBook: b,
-    })), [books, filter]);
+  const refreshList = async () => {
+    setLoading(true);
+    try {
+      const all = await loadAllDossiers();
+      setDossiers(all);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const filteredShelf = useMemo(() => {
+  useEffect(() => {
+    refreshList();
+    const h = () => refreshList();
+    window.addEventListener("lexicon-dossier-change", h);
+    return () => window.removeEventListener("lexicon-dossier-change", h);
+  }, []);
+
+  // Auto-open via ?open=<bookId>
+  useEffect(() => {
+    const open = searchParams.get("open");
+    if (open) {
+      setOpenId(open);
+      // Strip the param so re-mounts don't reopen
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      setSearchParams(next, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const cards: VaultCard[] = useMemo(() => {
+    const byId = new Map(books.map(b => [b.id, b]));
+    return dossiers.map(d => {
+      const b = byId.get(d.bookId);
+      return {
+        bookId: d.bookId,
+        title: b?.title ?? d.title ?? "Untitled",
+        author: b?.author ?? d.author ?? "Unknown",
+        year: b?.year,
+        coverUrl: b?.coverUrl,
+        spineColor: b?.spineColor,
+        generatedAt: d.generatedAt,
+        extendedAt: d.extendedAt,
+        extensionCount: d.extensionCount,
+      };
+    });
+  }, [dossiers, books]);
+
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return shelfCards
-      .filter(b => !q || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q))
-      .sort((a, b) => {
-        const at = a.shelfBook?.lastOpenedAt ?? a.shelfBook?.addedAt ?? "";
-        const bt = b.shelfBook?.lastOpenedAt ?? b.shelfBook?.addedAt ?? "";
-        return bt.localeCompare(at);
-      });
-  }, [shelfCards, query]);
+    let list = cards.filter(c => !q || c.title.toLowerCase().includes(q) || c.author.toLowerCase().includes(q));
+    if (sort === "recent") list = [...list].sort((a, b) => b.generatedAt.localeCompare(a.generatedAt));
+    else if (sort === "extended") list = [...list].sort((a, b) => (b.extendedAt ?? "").localeCompare(a.extendedAt ?? ""));
+    else list = [...list].sort((a, b) => a.author.localeCompare(b.author));
+    return list;
+  }, [cards, query, sort]);
 
-  // Universal search — when the query is non-empty, fetch external results too.
-  useEffect(() => {
-    const q = query.trim();
-    if (q.length < 2) { setExternal([]); setSearching(false); return; }
-    const seq = ++searchSeq.current;
-    setSearching(true);
-    const t = window.setTimeout(async () => {
-      try {
-        const results = await searchOpenLibrary(q, 18);
-        if (seq !== searchSeq.current) return;
-        // Drop any external result that duplicates a shelf book (by title+author)
-        const shelfKeys = new Set(books.map(b => `${b.title.toLowerCase()}::${b.author.toLowerCase()}`));
-        setExternal(results.filter(r => !shelfKeys.has(`${r.title.toLowerCase()}::${r.author.toLowerCase()}`)));
-      } catch {
-        if (seq === searchSeq.current) setExternal([]);
-      } finally {
-        if (seq === searchSeq.current) setSearching(false);
-      }
-    }, 350);
-    return () => window.clearTimeout(t);
-  }, [query, books]);
-
-  const externalCards: AnyBook[] = useMemo(() => external.map(r => ({
-    id: externalKey(r),
-    title: r.title,
-    author: r.author,
-    year: r.year,
-    coverUrl: r.coverUrl,
-    source: "external" as const,
-  })), [external]);
-
-  // Preload dossier indicators for everything currently visible
-  useEffect(() => {
-    let cancelled = false;
-    const ids = [...filteredShelf.map(b => b.id), ...externalCards.map(b => b.id)];
-    if (ids.length === 0) { setHaveDossier(new Set()); return; }
-    loadDossierMap(ids).then(set => { if (!cancelled) setHaveDossier(set); });
-    const refresh = () => loadDossierMap(ids).then(set => !cancelled && setHaveDossier(set));
-    window.addEventListener("lexicon-dossier-change", refresh);
-    return () => { cancelled = true; window.removeEventListener("lexicon-dossier-change", refresh); };
-  }, [filteredShelf, externalCards]);
-
-  const allCards = [...filteredShelf, ...externalCards];
-  const openCard = allCards.find(c => c.id === openId) ?? null;
+  const openCard = filtered.find(c => c.bookId === openId)
+    ?? cards.find(c => c.bookId === openId)
+    ?? null;
 
   return (
     <div className="min-h-screen bg-background">
       <PageHeader
         eyebrow="The Memory Vault"
         title="Book History"
-        subtitle="Every book you've lived inside — distilled into a dossier you can revisit forever. Search any book, even ones not on your shelf."
+        subtitle="Every dossier you've composed, kept forever. Open a book on your shelf and tap Generate to add it here."
       />
 
       <div className="px-8 pb-12 space-y-6">
@@ -133,47 +127,49 @@ export default function History() {
             <Input
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search any book — your shelf or the entire catalog…"
+              placeholder="Search your vault…"
               className="pl-9"
             />
-            {searching && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
           </div>
           <div className="flex flex-wrap gap-2">
-            {FILTERS.map(f => (
+            {SORTS.map(s => (
               <button
-                key={f.key}
-                onClick={() => setFilter(f.key)}
+                key={s.key}
+                onClick={() => setSort(s.key)}
                 className={cn(
                   "px-3 py-1.5 text-xs font-display tracking-wide border rounded-sm transition-colors",
-                  filter === f.key
+                  sort === s.key
                     ? "bg-primary/15 border-primary/50 text-primary"
                     : "border-border text-muted-foreground hover:text-foreground"
                 )}
               >
-                {f.label}
+                {s.label}
               </button>
             ))}
           </div>
         </div>
 
-        {filteredShelf.length === 0 && externalCards.length === 0 && (
+        {loading && cards.length === 0 && (
           <Card className="p-12 text-center text-muted-foreground border-dashed">
-            <Library className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p className="font-display tracking-wide">{query ? "No matches yet — keep typing." : "Your vault is empty."}</p>
-            <p className="text-xs mt-2">Search any book above to generate a dossier on the spot.</p>
+            <Loader2 className="h-6 w-6 mx-auto mb-3 animate-spin" />
+            <p className="font-display tracking-wide">Loading your vault…</p>
           </Card>
         )}
 
-        {filteredShelf.length > 0 && (
-          <Section heading="From your shelf" count={filteredShelf.length}>
-            <Grid cards={filteredShelf} have={haveDossier} onOpen={setOpenId} />
-          </Section>
+        {!loading && filtered.length === 0 && (
+          <Card className="p-12 text-center text-muted-foreground border-dashed">
+            <Library className="h-10 w-10 mx-auto mb-3 opacity-50" />
+            <p className="font-display tracking-wide">
+              {query ? "No dossiers match that search." : "No dossiers yet."}
+            </p>
+            <p className="text-xs mt-2">
+              Open any book on your shelf and tap <span className="font-display text-primary">Generate dossier</span> — it lands here, saved forever.
+            </p>
+          </Card>
         )}
 
-        {externalCards.length > 0 && (
-          <Section heading="From the wider catalog" count={externalCards.length}>
-            <Grid cards={externalCards} have={haveDossier} onOpen={setOpenId} />
-          </Section>
+        {filtered.length > 0 && (
+          <Grid cards={filtered} onOpen={(id) => setOpenId(id)} />
         )}
       </div>
 
@@ -186,30 +182,17 @@ export default function History() {
   );
 }
 
-function Section({ heading, count, children }: { heading: string; count: number; children: React.ReactNode }) {
-  return (
-    <section className="space-y-3">
-      <div className="flex items-baseline gap-3">
-        <h2 className="font-display text-lg tracking-wide">{heading}</h2>
-        <span className="mono text-[0.6rem] tracking-[0.3em] text-muted-foreground uppercase">{count} volumes</span>
-        <div className="flex-1 h-px bg-border/60" />
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function Grid({ cards, have, onOpen }: { cards: AnyBook[]; have: Set<string>; onOpen: (id: string) => void }) {
+function Grid({ cards, onOpen }: { cards: VaultCard[]; onOpen: (id: string) => void }) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
       {cards.map(b => (
-        <BookCard key={b.id} card={b} hasDossier={have.has(b.id)} onClick={() => onOpen(b.id)} />
+        <BookCard key={b.bookId} card={b} onClick={() => onOpen(b.bookId)} />
       ))}
     </div>
   );
 }
 
-function BookCard({ card, hasDossier, onClick }: { card: AnyBook; hasDossier: boolean; onClick: () => void }) {
+function BookCard({ card, onClick }: { card: VaultCard; onClick: () => void }) {
   const [src, setSrc] = useState(card.coverUrl);
   const [failed, setFailed] = useState(false);
   useEffect(() => { setSrc(card.coverUrl); setFailed(false); }, [card.coverUrl]);
@@ -232,13 +215,13 @@ function BookCard({ card, hasDossier, onClick }: { card: AnyBook; hasDossier: bo
             <span className="font-display text-xs text-foreground/80 leading-tight line-clamp-6">{card.title}</span>
           </div>
         )}
-        {hasDossier && (
-          <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground rounded-full p-1 shadow-gold" title="Dossier saved">
-            <Sparkles className="h-3 w-3" />
+        <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground rounded-full p-1 shadow-gold" title="Dossier saved">
+          <Sparkles className="h-3 w-3" />
+        </div>
+        {(card.extensionCount ?? 0) > 0 && (
+          <div className="absolute bottom-2 right-2 bg-background/90 border border-primary/40 text-primary rounded-sm px-1.5 py-0.5 text-[0.55rem] mono tracking-[0.2em] uppercase">
+            ×{card.extensionCount}
           </div>
-        )}
-        {card.source === "external" && (
-          <div className="absolute top-2 left-2 bg-background/85 border border-border rounded-sm px-1.5 py-0.5 text-[0.55rem] mono tracking-[0.2em] uppercase">catalog</div>
         )}
       </div>
       <div className="px-1">
@@ -249,10 +232,11 @@ function BookCard({ card, hasDossier, onClick }: { card: AnyBook; hasDossier: bo
   );
 }
 
-function DossierFullScreen({ card, onClose }: { card: AnyBook; onClose: () => void }) {
+function DossierFullScreen({ card, onClose }: { card: VaultCard; onClose: () => void }) {
   const [cached, setCached] = useState<CachedDossier | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadingMode, setLoadingMode] = useState<"create" | "regenerate" | "extend" | null>(null);
+  const [loadingMode, setLoadingMode] = useState<"regenerate" | "extend" | null>(null);
+  const [extendProgress, setExtendProgress] = useState<{ pass: number; total: number } | null>(null);
   const [revealSpoilers, setRevealSpoilers] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -262,52 +246,56 @@ function DossierFullScreen({ card, onClose }: { card: AnyBook; onClose: () => vo
     setRevealSpoilers(false);
     setCached(null);
     (async () => {
-      const existing = await loadDossier(card.id);
+      const existing = await loadDossier(card.bookId);
       if (cancelled) return;
-      if (existing) {
-        setCached(existing);
-        setHydrated(true);
-      } else {
-        setHydrated(true);
-        runGenerate("create");
-      }
+      setCached(existing);
+      setHydrated(true);
     })();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card.id]);
+  }, [card.bookId]);
 
-  const runGenerate = async (mode: "create" | "regenerate" | "extend") => {
+  const regenerate = async () => {
     if (loading) return;
     setLoading(true);
-    setLoadingMode(mode);
+    setLoadingMode("regenerate");
     try {
-      const isExtend = mode === "extend";
       const { dossier, generatedAt } = await generateDossier({
-        title: card.title,
-        author: card.author,
-        year: card.year,
-        mode: isExtend ? "extend" : "create",
-        existing: isExtend ? cached?.dossier : undefined,
+        title: card.title, author: card.author, year: card.year, mode: "create",
       });
       const saved = await saveDossierRemote({
-        bookId: card.id,
-        title: card.title,
-        author: card.author,
-        dossier,
-        generatedAt,
-        isExtension: isExtend,
+        bookId: card.bookId, title: card.title, author: card.author,
+        dossier, generatedAt,
       });
       setCached(saved);
-      toast.success(
-        mode === "extend" ? "Dossier extended with new insights" :
-        mode === "regenerate" ? "Dossier regenerated" :
-        "Dossier ready — saved forever"
-      );
+      toast.success("Dossier regenerated");
     } catch (e: any) {
-      toast.error(e?.message ?? "Could not generate dossier");
+      toast.error(e?.message ?? "Could not regenerate");
     } finally {
       setLoading(false);
       setLoadingMode(null);
+    }
+  };
+
+  const extendN = async (passes: 1 | 2 | 3) => {
+    if (loading || !cached) return;
+    setLoading(true);
+    setLoadingMode("extend");
+    setExtendProgress({ pass: 0, total: passes });
+    try {
+      const saved = await extendDossier({
+        bookId: card.bookId, title: card.title, author: card.author, year: card.year,
+        starting: cached.dossier, passes,
+        onProgress: (pass, total) => setExtendProgress({ pass, total }),
+      });
+      setCached(saved);
+      toast.success(passes === 1 ? "Dossier extended" : `Extended ${passes}× — deeper than ever`);
+    } catch (e: any) {
+      const which = extendProgress?.pass ?? 1;
+      toast.error(`Pass ${which} failed — kept previous version`);
+    } finally {
+      setLoading(false);
+      setLoadingMode(null);
+      setExtendProgress(null);
     }
   };
 
@@ -329,15 +317,36 @@ function DossierFullScreen({ card, onClose }: { card: AnyBook; onClose: () => vo
             <p className="text-sm lg:text-base text-muted-foreground mt-1">{card.author}{card.year ? ` · ${card.year}` : ""}</p>
           </div>
           {cached && (
-            <div className="flex flex-wrap gap-1.5">
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-[0.7rem] font-display tracking-wide" onClick={() => runGenerate("regenerate")} disabled={loading}>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Button size="sm" variant="ghost" className="h-7 px-2 text-[0.7rem] font-display tracking-wide" onClick={regenerate} disabled={loading}>
                 {loadingMode === "regenerate" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
                 Regenerate
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 px-2 text-[0.7rem] font-display tracking-wide text-primary hover:text-primary" onClick={() => runGenerate("extend")} disabled={loading} title="Add new insights, deeper detail, fresh quotes">
-                {loadingMode === "extend" ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plus className="h-3 w-3 mr-1" />}
-                Extend
-              </Button>
+
+              {/* Segmented Extend control */}
+              <div className="inline-flex items-center border border-primary/40 rounded-sm overflow-hidden h-7">
+                <span className="px-2 text-[0.65rem] font-display tracking-wide text-primary/80 inline-flex items-center gap-1 border-r border-primary/30">
+                  {loadingMode === "extend"
+                    ? <Loader2 className="h-3 w-3 animate-spin" />
+                    : <Plus className="h-3 w-3" />}
+                  Extend
+                </span>
+                {([1, 2, 3] as const).map(n => (
+                  <button
+                    key={n}
+                    onClick={() => extendN(n)}
+                    disabled={loading}
+                    className={cn(
+                      "px-2.5 h-full text-[0.7rem] font-display tracking-wide border-r border-primary/30 last:border-r-0 transition-colors",
+                      "text-primary hover:bg-primary/15 disabled:opacity-50",
+                    )}
+                    title={n === 1 ? "One deeper pass" : n === 2 ? "Two passes — much richer" : "Three passes — deepest dive"}
+                  >
+                    {n}×
+                  </button>
+                ))}
+              </div>
+
               <Button size="sm" variant="ghost" className="h-7 px-2 text-[0.7rem] font-display tracking-wide" onClick={() => setRevealSpoilers(v => !v)}>
                 {revealSpoilers ? <Eye className="h-3 w-3 mr-1" /> : <EyeOff className="h-3 w-3 mr-1" />}
                 {revealSpoilers ? "Spoilers on" : "Spoilers off"}
@@ -364,6 +373,11 @@ function DossierFullScreen({ card, onClose }: { card: AnyBook; onClose: () => vo
               {(cached.extensionCount ?? 0) > 0 && (
                 <Badge variant="outline" className="text-[0.6rem] tracking-wide self-center">extended ×{cached.extensionCount}</Badge>
               )}
+              {extendProgress && extendProgress.total > 1 && (
+                <span className="text-[0.65rem] mono tracking-[0.2em] uppercase text-primary">
+                  Pass {Math.max(extendProgress.pass, 1)}/{extendProgress.total}…
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -373,83 +387,132 @@ function DossierFullScreen({ card, onClose }: { card: AnyBook; onClose: () => vo
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="px-6 lg:px-12 py-8 max-w-5xl mx-auto">
+        <div className="px-6 lg:px-12 py-8 max-w-6xl mx-auto">
           {!hydrated && (
             <div className="text-center py-24 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-3" />
-              <p className="text-xs font-display tracking-wide">Loading vault…</p>
+              <p className="text-xs font-display tracking-wide">Loading dossier…</p>
             </div>
           )}
-          {hydrated && !cached && loading && (
-            <div className="text-center py-24 text-muted-foreground">
-              <Loader2 className="h-7 w-7 animate-spin mx-auto mb-4 text-primary" />
-              <p className="font-display text-base tracking-wide">Composing your dossier…</p>
-              <p className="text-sm mt-2">First time only — saved forever after this. Usually 15–30 seconds.</p>
-            </div>
-          )}
-          {hydrated && !cached && !loading && (
+          {hydrated && !cached && (
             <Card className="p-10 text-center border-dashed max-w-md mx-auto">
               <Sparkles className="h-8 w-8 mx-auto mb-3 text-primary opacity-70" />
-              <p className="font-display text-base mb-3">Generation failed</p>
-              <Button size="sm" onClick={() => runGenerate("create")}>Try again</Button>
+              <p className="font-display text-base mb-3">Dossier missing</p>
+              <p className="text-xs text-muted-foreground mb-4">It may have been removed. Regenerate to bring it back.</p>
+              <Button size="sm" onClick={regenerate} disabled={loading}>
+                {loading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                Regenerate
+              </Button>
             </Card>
           )}
-          {cached && <DossierBody dossier={cached.dossier} revealSpoilers={revealSpoilers} generatedAt={cached.generatedAt} extendedAt={cached.extendedAt} />}
+          {cached && <DossierBody dossier={cached.dossier} revealSpoilers={revealSpoilers} generatedAt={cached.generatedAt} extendedAt={cached.extendedAt} extensionCount={cached.extensionCount} />}
         </div>
       </ScrollArea>
     </div>
   );
 }
 
-function DossierBody({ dossier, revealSpoilers, generatedAt, extendedAt }: { dossier: BookDossier; revealSpoilers: boolean; generatedAt: string; extendedAt?: string }) {
+const SECTIONS: { id: string; label: string; icon: React.ReactNode }[] = [
+  { id: "essence", label: "Essence", icon: <BookOpen className="h-3.5 w-3.5" /> },
+  { id: "ideas", label: "Ideas", icon: <Lightbulb className="h-3.5 w-3.5" /> },
+  { id: "people", label: "People", icon: <Users className="h-3.5 w-3.5" /> },
+  { id: "quotes", label: "Quotes", icon: <QuoteIcon className="h-3.5 w-3.5" /> },
+  { id: "lessons", label: "Lessons", icon: <ListChecks className="h-3.5 w-3.5" /> },
+  { id: "plot", label: "Plot", icon: <Skull className="h-3.5 w-3.5" /> },
+];
+
+function DossierBody({
+  dossier, revealSpoilers, generatedAt, extendedAt, extensionCount,
+}: {
+  dossier: BookDossier; revealSpoilers: boolean; generatedAt: string;
+  extendedAt?: string; extensionCount?: number;
+}) {
+  const [activeSection, setActiveSection] = useState("essence");
+
+  // Track which section is in view (sticky TOC highlight)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter(e => e.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]) setActiveSection((visible[0].target as HTMLElement).dataset.section!);
+      },
+      { rootMargin: "-25% 0px -55% 0px", threshold: [0, 0.25, 0.5, 1] },
+    );
+    SECTIONS.forEach(s => {
+      const el = document.querySelector(`[data-section="${s.id}"]`);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollTo = (id: string) => {
+    const el = document.querySelector(`[data-section="${id}"]`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
-    <div className="space-y-8">
-      {/* Hero strip */}
-      <div className="space-y-3 pb-5 border-b border-border">
-        <p className="font-display text-xl lg:text-2xl italic text-foreground/90 leading-snug">
-          “{dossier.oneLiner}”
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {dossier.genre && <Badge variant="outline" className="font-display tracking-wide">{dossier.genre}</Badge>}
-          {dossier.setting && (
-            <Badge variant="outline" className="font-display tracking-wide gap-1">
-              <MapPin className="h-3 w-3" /> {dossier.setting}
-            </Badge>
-          )}
-          {dossier.moodTags?.map(t => (
-            <Badge key={t} variant="secondary" className="text-[0.65rem]">{t}</Badge>
+    <div className="grid grid-cols-12 gap-8">
+      {/* Sticky TOC — desktop only */}
+      <aside className="hidden lg:block lg:col-span-3">
+        <nav className="sticky top-6 space-y-1">
+          <p className="mono text-[0.55rem] tracking-[0.3em] uppercase text-muted-foreground mb-3">Contents</p>
+          {SECTIONS.map(s => (
+            <button
+              key={s.id}
+              onClick={() => scrollTo(s.id)}
+              className={cn(
+                "w-full flex items-center gap-2 px-3 py-2 text-left text-xs font-display tracking-wide rounded-sm border-l-2 transition-all",
+                activeSection === s.id
+                  ? "border-primary text-primary bg-primary/5"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border",
+              )}
+            >
+              {s.icon}
+              <span>{s.label}</span>
+            </button>
           ))}
-        </div>
-      </div>
+        </nav>
+      </aside>
 
-      <Tabs defaultValue="essence" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 mb-4 h-auto flex-wrap">
-          <TabsTrigger value="essence" className="text-xs">Essence</TabsTrigger>
-          <TabsTrigger value="ideas" className="text-xs">Ideas</TabsTrigger>
-          <TabsTrigger value="people" className="text-xs">People</TabsTrigger>
-          <TabsTrigger value="quotes" className="text-xs">Quotes</TabsTrigger>
-          <TabsTrigger value="lessons" className="text-xs">Lessons</TabsTrigger>
-          <TabsTrigger value="plot" className="text-xs">Plot</TabsTrigger>
-        </TabsList>
+      <div className="col-span-12 lg:col-span-9 space-y-12">
+        {/* Hero strip */}
+        <header className="space-y-4 pb-6 border-b border-border">
+          <p className="font-display text-2xl lg:text-3xl italic text-foreground/95 leading-snug">
+            <span className="text-primary text-3xl lg:text-4xl mr-1 leading-none">“</span>
+            {dossier.oneLiner}
+            <span className="text-primary text-3xl lg:text-4xl ml-0.5 leading-none">”</span>
+          </p>
+          <div className="h-px w-24 bg-gradient-to-r from-primary/60 to-transparent" />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mono text-[0.65rem] tracking-[0.25em] uppercase text-muted-foreground">
+            {dossier.genre && <span className="text-primary">{dossier.genre}</span>}
+            {dossier.setting && <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {dossier.setting}</span>}
+            {dossier.moodTags && dossier.moodTags.length > 0 && (
+              <span>{dossier.moodTags.slice(0, 4).join(" · ")}</span>
+            )}
+          </div>
+        </header>
 
-        <TabsContent value="essence" className="space-y-6">
-          <Block icon={<BookOpen className="h-4 w-4" />} title="Summary">
-            <p className="text-sm lg:text-base leading-relaxed text-foreground/90">{dossier.summary}</p>
-          </Block>
+        {/* ESSENCE */}
+        <Section id="essence" title="Essence" icon={<BookOpen className="h-4 w-4" />}>
+          <p className="text-base lg:text-lg leading-relaxed text-foreground/90 first-letter:font-display first-letter:text-5xl first-letter:float-left first-letter:mr-2 first-letter:leading-none first-letter:text-primary first-letter:mt-1">
+            {dossier.summary}
+          </p>
           {dossier.themes.length > 0 && (
-            <Block icon={<Tag className="h-4 w-4" />} title="Themes">
-              <div className="space-y-3">
+            <div className="space-y-4 pt-6">
+              <SubHead icon={<Tag className="h-3.5 w-3.5" />} label="Themes" />
+              <div className="grid sm:grid-cols-2 gap-4">
                 {dossier.themes.map((t, i) => (
-                  <div key={i}>
-                    <div className="font-display text-sm text-primary mb-1">{t.name}</div>
+                  <Card key={i} className="p-4 bg-muted/10 border-l-2 border-l-primary/60">
+                    <div className="font-display text-sm text-primary mb-1.5">{t.name}</div>
                     <p className="text-sm text-muted-foreground leading-relaxed">{t.description}</p>
-                  </div>
+                  </Card>
                 ))}
               </div>
-            </Block>
+            </div>
           )}
           {dossier.symbols && dossier.symbols.length > 0 && (
-            <Block icon={<Sparkles className="h-4 w-4" />} title="Symbols & Motifs">
+            <div className="space-y-4 pt-6">
+              <SubHead icon={<Sparkles className="h-3.5 w-3.5" />} label="Symbols & motifs" />
               <div className="grid sm:grid-cols-2 gap-3">
                 {dossier.symbols.map((s, i) => (
                   <Card key={i} className="p-3 bg-muted/20">
@@ -458,90 +521,105 @@ function DossierBody({ dossier, revealSpoilers, generatedAt, extendedAt }: { dos
                   </Card>
                 ))}
               </div>
-            </Block>
+            </div>
           )}
-        </TabsContent>
+        </Section>
 
-        <TabsContent value="ideas" className="space-y-3">
-          <p className="text-xs mono tracking-[0.25em] uppercase text-muted-foreground mb-3">Ideas to remember forever</p>
-          {dossier.mainIdeas.map((idea, i) => (
-            <Card key={i} className="p-4 border-l-4 border-l-primary/70">
-              <div className="flex gap-3 items-start">
-                <div className="font-display text-2xl text-primary/70 leading-none">{String(i + 1).padStart(2, "0")}</div>
-                <div className="flex-1">
-                  <div className="font-display text-base mb-1.5">{idea.idea}</div>
-                  <p className="text-sm text-foreground/90 leading-relaxed mb-2">{idea.explanation}</p>
-                  <div className="text-xs text-muted-foreground italic border-l-2 border-border pl-3">
-                    Why it matters: {idea.whyItMatters}
+        {/* IDEAS */}
+        <Section id="ideas" title="Ideas to Remember" icon={<Lightbulb className="h-4 w-4" />}>
+          <div className="space-y-4">
+            {dossier.mainIdeas.map((idea, i) => (
+              <Card key={i} className="p-5 border-l-4 border-l-primary shadow-sm">
+                <div className="flex gap-4 items-start">
+                  <div className="font-display text-3xl text-primary/60 leading-none tabular-nums">{String(i + 1).padStart(2, "0")}</div>
+                  <div className="flex-1">
+                    <div className="font-display text-base lg:text-lg mb-2">{idea.idea}</div>
+                    <p className="text-sm lg:text-base text-foreground/90 leading-relaxed mb-3">{idea.explanation}</p>
+                    <p className="text-xs lg:text-sm text-muted-foreground italic pl-3 border-l border-primary/30">
+                      <span className="mono not-italic text-[0.6rem] tracking-[0.25em] uppercase text-primary/70 mr-1.5">Why it matters</span>
+                      {idea.whyItMatters}
+                    </p>
                   </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </TabsContent>
+              </Card>
+            ))}
+          </div>
+        </Section>
 
-        <TabsContent value="people" className="space-y-3">
-          <Block icon={<Users className="h-4 w-4" />} title="Characters">
-            <div className="space-y-3">
-              {dossier.characters.map((c, i) => (
-                <Card key={i} className="p-4">
-                  <div className="flex items-baseline justify-between gap-2 mb-2">
-                    <div className="font-display text-base">{c.name}</div>
-                    <Badge variant="outline" className="text-[0.6rem] tracking-wide uppercase">{c.role}</Badge>
+        {/* PEOPLE */}
+        <Section id="people" title="People" icon={<Users className="h-4 w-4" />}>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {dossier.characters.map((c, i) => (
+              <Card key={i} className="p-4 flex flex-col">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="font-display text-base">{c.name}</div>
+                  <Badge variant="outline" className="text-[0.55rem] tracking-[0.2em] uppercase shrink-0">{c.role}</Badge>
+                </div>
+                <p className="text-sm text-foreground/90 leading-relaxed flex-1">{c.description}</p>
+                {c.arc && (
+                  <div className="mt-3 pt-3 border-t border-border/60 text-xs text-muted-foreground italic flex gap-2">
+                    <span className="text-primary not-italic">→</span>
+                    <span>{c.arc}</span>
                   </div>
-                  <p className="text-sm text-foreground/90 leading-relaxed">{c.description}</p>
-                  {c.arc && <div className="mt-2 text-xs text-muted-foreground italic">Arc: {c.arc}</div>}
-                </Card>
-              ))}
-            </div>
-          </Block>
-        </TabsContent>
+                )}
+              </Card>
+            ))}
+          </div>
+        </Section>
 
-        <TabsContent value="quotes" className="space-y-3">
-          <Block icon={<QuoteIcon className="h-4 w-4" />} title="Key Quotes">
-            <div className="space-y-4">
-              {dossier.keyQuotes.map((q, i) => (
-                <blockquote key={i} className="border-l-2 border-primary/60 pl-4 py-1">
-                  <p className="font-display italic text-base leading-relaxed text-foreground/95">“{q.quote}”</p>
-                  {q.context && <footer className="text-xs text-muted-foreground mt-2">— {q.context}</footer>}
+        {/* QUOTES */}
+        <Section id="quotes" title="Key Quotes" icon={<QuoteIcon className="h-4 w-4" />}>
+          <div className="space-y-6">
+            {dossier.keyQuotes.map((q, i) => (
+              <figure key={i} className="relative pl-10 pr-2">
+                <span aria-hidden className="absolute left-0 top-0 font-display text-6xl text-primary/30 leading-none select-none">“</span>
+                <blockquote className="font-display italic text-lg lg:text-xl leading-relaxed text-foreground/95">
+                  {q.quote}
                 </blockquote>
-              ))}
-            </div>
-          </Block>
-        </TabsContent>
+                {q.context && (
+                  <figcaption className="mt-3 mono text-[0.6rem] tracking-[0.25em] uppercase text-muted-foreground border-t border-border/40 pt-2">
+                    {q.context}
+                  </figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+        </Section>
 
-        <TabsContent value="lessons" className="space-y-6">
-          <Block icon={<Lightbulb className="h-4 w-4" />} title="Lessons to Carry">
-            <ul className="space-y-2">
-              {dossier.lessons.map((l, i) => (
-                <li key={i} className="flex gap-3 text-sm leading-relaxed">
-                  <span className="text-primary font-display shrink-0">◆</span>
-                  <span className="text-foreground/90">{l}</span>
-                </li>
-              ))}
-            </ul>
-          </Block>
+        {/* LESSONS */}
+        <Section id="lessons" title="Lessons to Carry" icon={<ListChecks className="h-4 w-4" />}>
+          <ul className="space-y-3">
+            {dossier.lessons.map((l, i) => (
+              <li key={i} className="flex gap-3 text-sm lg:text-base leading-relaxed">
+                <span className="text-primary font-display shrink-0 mt-0.5">◆</span>
+                <span className="text-foreground/90">{l}</span>
+              </li>
+            ))}
+          </ul>
           {dossier.discussionQuestions && dossier.discussionQuestions.length > 0 && (
-            <Block icon={<MessageCircle className="h-4 w-4" />} title="Questions to Sit With">
+            <div className="space-y-3 pt-8">
+              <SubHead icon={<MessageCircle className="h-3.5 w-3.5" />} label="Questions to sit with" />
               <ul className="space-y-2">
                 {dossier.discussionQuestions.map((q, i) => (
-                  <li key={i} className="text-sm text-muted-foreground italic">— {q}</li>
+                  <li key={i} className="text-sm text-muted-foreground italic leading-relaxed">— {q}</li>
                 ))}
               </ul>
-            </Block>
+            </div>
           )}
           {dossier.criticisms && dossier.criticisms.length > 0 && (
-            <Block icon={<ListChecks className="h-4 w-4" />} title="Honest Critique">
+            <div className="space-y-3 pt-8">
+              <SubHead icon={<ListChecks className="h-3.5 w-3.5" />} label="Honest critique" />
               <ul className="space-y-1.5">
                 {dossier.criticisms.map((c, i) => (
                   <li key={i} className="text-sm text-muted-foreground">• {c}</li>
                 ))}
               </ul>
-            </Block>
+            </div>
           )}
           {dossier.ifYouLiked && dossier.ifYouLiked.length > 0 && (
-            <Block icon={<Library className="h-4 w-4" />} title="If You Liked This">
-              <div className="grid sm:grid-cols-2 gap-2">
+            <div className="space-y-3 pt-8">
+              <SubHead icon={<Library className="h-3.5 w-3.5" />} label="If you liked this" />
+              <div className="grid sm:grid-cols-2 gap-3">
                 {dossier.ifYouLiked.map((r, i) => (
                   <Card key={i} className="p-3 bg-muted/20">
                     <div className="font-display text-sm">{r.title}</div>
@@ -550,61 +628,77 @@ function DossierBody({ dossier, revealSpoilers, generatedAt, extendedAt }: { dos
                   </Card>
                 ))}
               </div>
-            </Block>
+            </div>
           )}
-        </TabsContent>
+        </Section>
 
-        <TabsContent value="plot" className="space-y-5">
+        {/* PLOT */}
+        <Section id="plot" title="Plot" icon={<Skull className="h-4 w-4" />}>
           <SpoilerWrap revealed={revealSpoilers}>
-            <Block icon={<ListChecks className="h-4 w-4" />} title="Plot Timeline">
-              <ol className="space-y-3 relative border-l border-border ml-2 pl-5">
-                {dossier.timeline.map((b, i) => (
-                  <li key={i} className="relative">
-                    <span className="absolute -left-[26px] top-1 w-3 h-3 rounded-full bg-primary/70 shadow-gold" />
-                    <div className="mono text-[0.6rem] tracking-[0.25em] uppercase text-primary mb-0.5">{b.act}</div>
-                    <p className="text-sm text-foreground/90 leading-relaxed">{b.event}</p>
-                  </li>
-                ))}
-              </ol>
-            </Block>
+            <ol className="space-y-4 relative border-l border-border ml-2 pl-6">
+              {dossier.timeline.map((b, i) => (
+                <li key={i} className="relative">
+                  <span className="absolute -left-[30px] top-1.5 w-3 h-3 rounded-full bg-primary/70 shadow-gold ring-2 ring-background" />
+                  <div className="mono text-[0.6rem] tracking-[0.3em] uppercase text-primary mb-1">{b.act}</div>
+                  <p className="text-sm lg:text-base text-foreground/90 leading-relaxed">{b.event}</p>
+                </li>
+              ))}
+            </ol>
           </SpoilerWrap>
           {dossier.twists && dossier.twists.length > 0 && (
-            <SpoilerWrap revealed={revealSpoilers}>
-              <Block icon={<Skull className="h-4 w-4" />} title="Major Twists">
-                <ul className="space-y-2">
+            <div className="pt-6">
+              <SubHead icon={<Skull className="h-3.5 w-3.5" />} label="Major twists" />
+              <SpoilerWrap revealed={revealSpoilers}>
+                <div className="space-y-2 pt-2">
                   {dossier.twists.map((t, i) => (
-                    <li key={i} className="text-sm text-foreground/90 leading-relaxed">• {t}</li>
+                    <Card key={i} className="p-3 bg-destructive/5 border-l-2 border-l-destructive/60">
+                      <p className="text-sm text-foreground/90 leading-relaxed">{t}</p>
+                    </Card>
                   ))}
-                </ul>
-              </Block>
-            </SpoilerWrap>
+                </div>
+              </SpoilerWrap>
+            </div>
           )}
           {dossier.ending && (
-            <SpoilerWrap revealed={revealSpoilers}>
-              <Block icon={<BookOpen className="h-4 w-4" />} title="The Ending">
-                <p className="text-sm text-foreground/90 leading-relaxed">{dossier.ending}</p>
-              </Block>
-            </SpoilerWrap>
+            <div className="pt-6">
+              <SubHead icon={<BookOpen className="h-3.5 w-3.5" />} label="The ending" />
+              <SpoilerWrap revealed={revealSpoilers}>
+                <p className="text-sm lg:text-base text-foreground/90 leading-relaxed pt-2">{dossier.ending}</p>
+              </SpoilerWrap>
+            </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </Section>
 
-      <div className="pt-4 border-t border-border mono text-[0.6rem] tracking-[0.25em] uppercase text-muted-foreground">
-        Dossier composed {new Date(generatedAt).toLocaleDateString()}{extendedAt ? ` · extended ${new Date(extendedAt).toLocaleDateString()}` : ""} · AI-generated, verify before quoting
+        <div className="pt-8 border-t border-border mono text-[0.6rem] tracking-[0.25em] uppercase text-muted-foreground">
+          Composed {new Date(generatedAt).toLocaleDateString()}
+          {extendedAt ? ` · last extended ${new Date(extendedAt).toLocaleDateString()}` : ""}
+          {(extensionCount ?? 0) > 0 ? ` · extended ×${extensionCount}` : ""}
+          {" · AI-generated, verify before quoting"}
+        </div>
       </div>
     </div>
   );
 }
 
-function Block({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
+function Section({ id, title, icon, children }: { id: string; title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section>
-      <div className="flex items-center gap-2 mb-3 text-primary">
+    <section data-section={id} className="space-y-5 scroll-mt-6">
+      <div className="flex items-center gap-2 text-primary">
         {icon}
-        <h3 className="font-display text-sm tracking-[0.2em] uppercase">{title}</h3>
+        <h2 className="font-display text-base tracking-[0.2em] uppercase">{title}</h2>
+        <div className="flex-1 h-px bg-border/60 ml-2" />
       </div>
       {children}
     </section>
+  );
+}
+
+function SubHead({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-2 text-muted-foreground">
+      {icon}
+      <h3 className="mono text-[0.6rem] tracking-[0.3em] uppercase">{label}</h3>
+    </div>
   );
 }
 

@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { enrichBookMetadata } from "@/lib/openlibrary";
 import { acquireCover } from "@/lib/covers";
 import { AICoverDialog } from "@/components/AICoverDialog";
+import { generateDossier, loadDossier, saveDossierRemote } from "@/lib/dossier";
+import { ScrollText } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   consumeEditionApply,
@@ -63,6 +65,8 @@ export default function BookBrain() {
   const [refreshingMeta, setRefreshingMeta] = useState(false);
   const [generatingSpine, setGeneratingSpine] = useState(false);
   const [aiCoverOpen, setAiCoverOpen] = useState(false);
+  const [generatingDossier, setGeneratingDossier] = useState(false);
+  const [hasDossier, setHasDossier] = useState(false);
 
   // Edition handoff from the Recommendations page (sessionStorage).
   const { recs } = useSavedRecs();
@@ -264,6 +268,42 @@ export default function BookBrain() {
     setPending(null);
   };
 
+  // Track whether this book already has a saved dossier
+  useEffect(() => {
+    if (!book?.id) return;
+    let cancelled = false;
+    loadDossier(book.id).then(d => { if (!cancelled) setHasDossier(!!d); });
+    const refresh = () => loadDossier(book.id).then(d => !cancelled && setHasDossier(!!d));
+    window.addEventListener("lexicon-dossier-change", refresh);
+    return () => { cancelled = true; window.removeEventListener("lexicon-dossier-change", refresh); };
+  }, [book?.id]);
+
+  const generateAndSaveDossier = async () => {
+    if (!book) return;
+    if (hasDossier) {
+      navigate(`/history?open=${book.id}`);
+      return;
+    }
+    setGeneratingDossier(true);
+    try {
+      const { dossier, generatedAt } = await generateDossier({
+        title: book.title, author: book.author, year: book.year, mode: "create",
+      });
+      await saveDossierRemote({
+        bookId: book.id, title: book.title, author: book.author,
+        dossier, generatedAt,
+      });
+      setHasDossier(true);
+      toast.success("Dossier saved to your Memory Vault", {
+        action: { label: "Open", onClick: () => navigate(`/history?open=${book.id}`) },
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not generate dossier");
+    } finally {
+      setGeneratingDossier(false);
+    }
+  };
+
   return (
     <div className="min-h-screen pb-24">
       {/* Top bar */}
@@ -274,6 +314,19 @@ export default function BookBrain() {
         <div className="flex items-center gap-2">
           <Button onClick={refreshMetadata} disabled={refreshingMeta} variant="outline" size="sm" className="border-primary/40 text-primary">
             {refreshingMeta ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-2" />} Improve details
+          </Button>
+          <Button
+            onClick={generateAndSaveDossier}
+            disabled={generatingDossier}
+            variant="outline"
+            size="sm"
+            className="border-primary/40 text-primary"
+            title={hasDossier ? "Open in the Memory Vault" : "Generate a full dossier and save it to the Memory Vault"}
+          >
+            {generatingDossier
+              ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+              : <ScrollText className="h-3.5 w-3.5 mr-2" />}
+            {hasDossier ? "Open dossier" : generatingDossier ? "Composing…" : "Generate dossier"}
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>

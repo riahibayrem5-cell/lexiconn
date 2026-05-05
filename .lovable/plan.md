@@ -1,115 +1,88 @@
-## General audit — what's incomplete, broken, or missing
+# Dossier flow rework
 
-After reading every page, the sidebar, the layout, types, and the storage layer, here's the honest state of the app.
+Goal: every book gets a "Generate" button alongside Improve details / Delete. Generated dossiers are saved automatically and become the only thing the History page lists. The History page gets stronger Regenerate / Extend (with depth) controls and a richer template.
 
-### Bugs / dead code
-1. **`Constellation` page is orphaned** — fully built (force-graph of book connections) but not in `App.tsx` routes and not in the sidebar. Either ship it or delete it.
-2. **`/quotes`** has an unused `cardRef` and an "AI Card" button that calls a Lovable AI image function on every click — slow and expensive. The fallback SVG is also better-looking than the AI version.
-3. **`Ritual`** ignores `pagesStart/pagesEnd` mid-session (only used at stop), and the "Mid-session capture" quote button doesn't disable while empty.
-4. **`Review` page** is just a 12-item priority list — barely a page.
-5. **`Archive`** estimates hours as `pages * 2 / 60` — that's pages-as-minutes, weird formula, should use a real WPM model + actual logged session minutes.
-6. **`Oracle`** and **`Recommendations`** overlap heavily (both do AI search + add-to-shelf). Users will be confused which one to use.
-7. **AdminPanel** still lists `/admin` as a togglable nav item (you can hide the page that hides itself).
-8. **Sidebar** "Sign in to sync" label shows even after sign-in for one frame because `user` resolves async — minor flicker.
-9. **No global empty-state** for first-time visitors landing on `/` with zero books — they see "An empty shelf is a kind of patience." but no onboarding.
-10. **No keyboard shortcuts** anywhere (a luxury reading app should have a `⌘K` palette at minimum).
+## 1. `BookBrain.tsx` — Generate button on the book page
 
-### Missing features that the app clearly wants
-- **Reading goals** (yearly book target, weekly minutes target). Ritual already tracks streaks but there's no target line.
-- **Currently reading widget** on the home/shelf — right now the only way to resume is to scroll the "Reading" shelf.
-- **Per-book progress %** (we have pagesStart/pagesEnd in sessions and `pages` on the book — easy to compute).
-- **Quotes → share image** that's actually shareable (Twitter/IG-sized PNG, copy-to-clipboard, not just download).
-- **Search across everything** (books, quotes, journal entries) from one place.
-- **Book detail "Reading timeline"** — sessions exist as data but BookBrain doesn't visualize them.
-- **Recommendations history is per-search but not connected to "books you've already added"** — it should mark editions you own.
-- **Export to Markdown / Notion-friendly** in addition to JSON.
+Add a third button in the top action row (next to *Improve details* and *Delete*):
 
-### Things to consider getting rid of
-- **`AdminPanel`** (`/admin`) — overlaps with `Settings`, exposes confusing knobs (premium depth slider, page header copy editors). Most users will never touch it. **Recommend folding into Settings under an "Advanced" accordion** and removing the sidebar entry.
-- **`LibrarianAgent`** (floating chat) — duplicates the Oracle + Recommendations flows and is a heavy bundle. Keep the toggle but default it OFF, and trim its command surface.
-- **The 4-mode `Oracle` page** — keep "What Next" only; "Thematic Threads", "Author Universe", "Compare" should move into BookBrain (per-book dossier), where they belong.
+```text
+[← Back to shelf]                  [Improve details] [Generate dossier] [Delete] [Dossier · XXXXXX]
+```
 
----
+Behavior:
+- On click → call `generateDossier({ title, author, year, mode: "create" })` then `saveDossierRemote({ bookId: book.id, ... })` from `src/lib/dossier.ts`.
+- Show inline state: "Generating…" → toast `"Dossier saved to your Memory Vault"`.
+- If a dossier already exists, the button label switches to **"Open dossier"** and routes to `/history` with `?open=<bookId>` (consumed by History to auto-open the modal). It no longer regenerates from this page — regenerate/extend live in History.
+- Same component is reused for any book that has a `BookBrain` route, which already covers both shelf books and searched books once added. (No separate flow is needed for the search drawer — generation happens after a book exists in `books`.)
+- Use `loadDossier(book.id)` on mount so the label reflects existing state.
 
-## Two-day plan
+## 2. `History.tsx` — vault becomes saved-dossiers-only
 
-### Day 1 — Fix the foundations & ship dead pages
+Strip:
+- The catalog/external `searchOpenLibrary` block, `external` state, `searching` state, `externalCards`, "From the wider catalog" section.
+- The auto-generate-on-open behavior in `DossierFullScreen` (no more silent generations from this page).
 
-**A. Routing & navigation cleanup**
-- Add `/constellation` route and sidebar entry for `Constellation`.
-- Remove `/admin` from sidebar; keep route reachable but fold the panel content into a Settings → Advanced section.
-- Add a `CommandPalette` (⌘K / Ctrl-K) that searches books, quotes, navigates pages, and triggers actions (add book, start ritual, etc.). Single keyboard-driven interface to replace the floating agent.
-- Default the floating `LibrarianAgent` to OFF in `adminSettings` (still toggleable).
+Replace the data source:
+- Add `loadAllDossiers()` to `src/lib/dossier.ts` — selects every row from `book_dossiers` for the user (or guest map). Returns `{ bookId, title, author, generatedAt, extendedAt, extensionCount }[]`.
+- For each row, hydrate cover/year by joining with `books` (in-memory `useLibrary().books`). Books that are no longer on the shelf still appear (using stored title/author and a placeholder cover).
+- Filters become: `all | recently extended | by author A–Z | last generated`. Search box stays but only filters this list.
+- Empty state: "No dossiers yet — open any book and tap **Generate dossier**."
 
-**B. Home / Shelf upgrades**
-- Above the shelf, add a **"Currently at the desk"** strip: the active reading book(s) with cover, % progress (computed from latest session pagesEnd / book.pages), last opened, and a "Resume in Ritual" button.
-- Add a **"Today" bar**: minutes read today, streak, weekly goal progress.
-- First-visit empty state: replace the single line with a guided card (Add a book / Import from Goodreads / Browse demo shelf).
+Auto-open when arriving with `?open=<bookId>` from BookBrain.
 
-**C. Bug fixes**
-- Remove unused `cardRef` and dead AI Card path in Quotes — keep the SVG fallback as the primary, rename to "Download card" and add a "Copy as image" button using `canvas`.
-- Fix Ritual's pages-on-stop logic so it computes pace from the real logged session, not from inputs that may be empty.
-- Fix Archive `hours` estimate: use sum of session.durationMin where present; fall back to `pages / 0.5` (≈ 2 min/page) only when no sessions.
-- Sidebar: render the avatar/label only after the auth state resolves to avoid the "Sign in" → "Display name" flicker.
+## 3. Extend with 1× / 2× / 3× depth
 
-### Day 2 — Add missing surfaces & consolidate
+Replace the single Extend button in the dossier toolbar with a small segmented control:
 
-**D. Reading goals & progress**
-- New `Goal` types in `lib/types.ts`: `{ year, books, minutesPerWeek }`.
-- Persist in `profiles` for signed-in users, localStorage for guests.
-- Show goal rings on Ritual (weekly minutes) and Archive (yearly books).
-- Add a per-book progress % chip on every spine hover-card and in BookBrain header.
+```text
+[Regenerate] [Extend ▾ 1×|2×|3×] [Spoilers] [PDF]
+```
 
-**E. BookBrain dossier upgrades**
-- New "Timeline" tab: vertical list of sessions + journal entries + quotes interleaved by date, like a reading diary.
-- Move Oracle's "Thematic threads" and "Compare with another book" features here as in-context AI actions ("Find books like this in my library", "Compare with…").
-- Add a **Reading-timeline mini-chart** (sparkline of cumulative pages over time).
+- 1× = current behavior (one pass).
+- 2× = run `mode: "extend"` twice in sequence, feeding the previous output back in.
+- 3× = three passes. Each pass increments `extension_count` and updates `extended_at`.
+- Show progress: `Extending pass 2/3…`.
 
-**F. Quotes & sharing**
-- Replace the AI quote-card with a deterministic, beautiful client-side canvas card (3 templates). Buttons: Download PNG, Copy to clipboard, Share (Web Share API where available).
-- Add tag-cloud filters to the Quotes page (by book, by resonance, by year saved).
+Backend (`supabase/functions/book-dossier/index.ts`) already supports `mode: "extend"`. No backend change required — looping happens client-side in `runGenerate("extend", { passes })`.
 
-**G. Consolidate Oracle / Recommendations**
-- `Oracle` → keep only "What Next" mode, rename to **Concierge** (recommends from your library + mood).
-- Multi-language editions stays as the **Recommendations** page (already strong).
-- Cross-link both: Recommendations result page shows "Ask the Concierge about this book" button.
+## 4. Template polish (DossierBody)
 
-**H. Constellation polish (since we're shipping it)**
-- Replace the orbital init with a deterministic seed so layout doesn't jitter on every render.
-- Add filters above the canvas: by status, by tag, by arc outcome.
-- Click a node → side drawer with the book mini-dossier instead of a hard navigation.
+Tighten the dossier reading experience:
 
-**I. Export upgrades**
-- Add Markdown export (one .md per book with quotes + journal) zipped via JSZip.
-- Add a "Copy quote as Markdown" button on every quote card.
+- Add a sticky **table of contents** sidebar on `lg:` screens (Essence / Ideas / People / Quotes / Lessons / Plot) with smooth scroll, replacing the tabbed layout for a long-form feel. Mobile keeps the existing tabs.
+- Hero strip: add `oneLiner` in larger drop-cap display, a thin gold rule, and `genre · setting · X mood tags` on a single mono line.
+- Ideas: numbered cards keep their structure but add a subtle `border-l-primary` glow and "Why it matters" indented in a small italic block instead of a separate bordered line.
+- Characters: two-column grid on `sm:` with role chip top-right, arc as `→` line at bottom.
+- Quotes: full-width pull quote treatment with hanging quotation mark, attribution on a thin line below.
+- Lessons: keep diamond bullets, but add a small "carry into life" header style.
+- Plot: keep the timeline, render twists as collapsible cards inside the spoiler wrap.
+- Footer: add `Extended ×N · last extended <date>` when `extensionCount > 0`.
 
----
+Dossier PDF (`src/lib/dossierPdf.ts`) gets the same hero strip and TOC layout updates so the export matches the on-screen template.
+
+## 5. Storage helper changes
+
+`src/lib/dossier.ts`:
+
+- `loadAllDossiers(): Promise<CachedDossier[]>` — DB select-all for signed-in users; reads guest map otherwise. Returns rows including `title` and `author` for display.
+- `extendDossier({ bookId, passes }): Promise<CachedDossier>` — convenience wrapper that loops `generateDossier` + `saveDossierRemote` `passes` times.
+
+No DB migrations needed; the `book_dossiers` table already has `extension_count` and `extended_at`.
 
 ## Technical notes
 
-- **Command palette**: use `cmdk` (already a transitive dep via shadcn). New file `src/components/CommandPalette.tsx`, mounted in `AppLayout`, opens on `keydown` `Meta+K` / `Ctrl+K`.
-- **Goals storage**: extend `profiles` table with `reading_goal_books int`, `reading_goal_minutes_per_week int`. Migration needed. Guest fallback in `localStorage` under `lexicon:goals`.
-- **Progress %**: helper `bookProgress(book): number` in `lib/storage.ts` that picks the latest session's `pagesEnd` divided by `book.pages`.
-- **Quote canvas**: pure client-side `OffscreenCanvas` (or fallback `<canvas>`); 1080×1080 output; no edge function call. Removes the `quote-card` function from the hot path.
-- **Constellation**: extract the simulation loop into `useConstellationLayout(books)` hook so the page component is render-pure; gate label rendering with `requestIdleCallback`.
-- **AdminPanel fold-in**: move its content into a new `<SettingsAdvanced/>` accordion in `Settings.tsx`; delete the standalone page or leave a redirect.
-- **No new dependencies** beyond what's already shadcn-bundled.
+- `History.tsx` removes `OLResult`/`searchOpenLibrary` imports.
+- The `lexicon-dossier-change` event is already dispatched on guest writes; emit it from the DB path too so the History list refreshes immediately after generating from BookBrain.
+- BookBrain's "Open dossier" navigation: `navigate("/history?open=" + book.id)`. History reads `useSearchParams()` to set `openId` once on mount.
+- Extend loop guards: stop on first error, surface a toast `"Pass 2 failed — kept pass 1"`.
+- All dossier writes continue to go through the existing `book-dossier` edge function; no new functions or secrets.
 
-```text
-Sidebar (after)
-├─ Shelf
-├─ Concierge          (renamed Oracle, single mode)
-├─ Recommendations    (multi-language editions)
-├─ Reading Ritual
-├─ Quotes Vault
-├─ Constellation      (NEW visible)
-├─ Archive
-├─ Review Desk
-└─ Settings           (Admin folded in here)
-```
+## Files touched
 
----
+- `src/pages/BookBrain.tsx` — Generate / Open dossier button, navigate to History.
+- `src/pages/History.tsx` — drop catalog search, list saved dossiers only, segmented Extend, auto-open via query param, template polish.
+- `src/lib/dossier.ts` — `loadAllDossiers`, `extendDossier`, dispatch change event after DB writes.
+- `src/lib/dossierPdf.ts` — match the new template structure.
 
-## Open questions for you
-
-I'll ask before starting Day 1 so I don't go the wrong direction on the bigger calls (consolidating Oracle, dropping AdminPanel, defaulting the floating agent off). If you'd rather I just proceed with my judgement, say "go" and I'll execute the full two-day plan.
+Out of scope: changing the dossier JSON schema, adding new edge functions, deleting old dossiers UI.
