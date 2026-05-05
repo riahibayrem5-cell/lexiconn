@@ -341,6 +341,17 @@ export default function BookBrain() {
             )}
             <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
           </div>
+          <div className="flex justify-center">
+            <Button
+              onClick={() => setAiCoverOpen(true)}
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[0.6rem] tracking-[0.2em] uppercase text-primary hover:text-primary-glow"
+            >
+              <Wand2 className="h-3 w-3 mr-1.5" />
+              {book.coverSource === "ai-generated" ? "Regenerate AI cover" : "Generate AI cover"}
+            </Button>
+          </div>
 
           <div className="text-center space-y-2">
             <span className="eyebrow">{STATUS_LABEL[book.status]}</span>
