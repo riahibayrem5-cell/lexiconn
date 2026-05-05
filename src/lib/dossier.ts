@@ -32,6 +32,8 @@ export interface BookDossier {
 
 export interface CachedDossier {
   bookId: string;
+  title?: string;
+  author?: string;
   generatedAt: string;
   extendedAt?: string;
   extensionCount?: number;
