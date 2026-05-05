@@ -152,3 +152,51 @@ export async function loadDossierMap(bookIds: string[]): Promise<Set<string>> {
     .in("book_id", bookIds);
   return new Set(((data ?? []) as any[]).map(r => r.book_id));
 }
+
+// Load every saved dossier for the current user (or guest map).
+export async function loadAllDossiers(): Promise<CachedDossier[]> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return Object.values(readGuestAll()).sort((a, b) =>
+      (b.extendedAt ?? b.generatedAt).localeCompare(a.extendedAt ?? a.generatedAt),
+    );
+  }
+  const { data } = await supabase
+    .from("book_dossiers" as any)
+    .select("*")
+    .order("generated_at", { ascending: false });
+  return ((data ?? []) as any[]).map((row) => ({
+    bookId: row.book_id,
+    title: row.title,
+    author: row.author,
+    generatedAt: row.generated_at,
+    extendedAt: row.extended_at ?? undefined,
+    extensionCount: row.extension_count ?? 0,
+    dossier: row.dossier,
+  }));
+}
+
+// Extend a dossier `passes` times, feeding each pass back into the next.
+export async function extendDossier(args: {
+  bookId: string; title: string; author: string; year?: number;
+  starting: BookDossier;
+  passes: 1 | 2 | 3;
+  onProgress?: (pass: number, total: number) => void;
+}): Promise<CachedDossier> {
+  let current = args.starting;
+  let saved: CachedDossier | null = null;
+  for (let i = 1; i <= args.passes; i++) {
+    args.onProgress?.(i, args.passes);
+    const { dossier, generatedAt } = await generateDossier({
+      title: args.title, author: args.author, year: args.year,
+      mode: "extend", existing: current,
+    });
+    current = dossier;
+    saved = await saveDossierRemote({
+      bookId: args.bookId, title: args.title, author: args.author,
+      dossier, generatedAt, isExtension: true,
+    });
+  }
+  if (!saved) throw new Error("No passes ran");
+  return saved;
+}
