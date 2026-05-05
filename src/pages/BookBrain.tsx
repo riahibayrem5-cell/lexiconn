@@ -65,6 +65,8 @@ export default function BookBrain() {
   const [refreshingMeta, setRefreshingMeta] = useState(false);
   const [generatingSpine, setGeneratingSpine] = useState(false);
   const [aiCoverOpen, setAiCoverOpen] = useState(false);
+  const [generatingDossier, setGeneratingDossier] = useState(false);
+  const [hasDossier, setHasDossier] = useState(false);
 
   // Edition handoff from the Recommendations page (sessionStorage).
   const { recs } = useSavedRecs();
