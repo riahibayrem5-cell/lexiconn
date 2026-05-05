@@ -114,6 +114,8 @@ export async function saveDossierRemote(args: {
     await supabase.from("book_dossiers" as any).insert(payload);
   }
 
+  window.dispatchEvent(new CustomEvent("lexicon-dossier-change"));
+
   return {
     bookId: args.bookId,
     generatedAt: existingRow?.generated_at ?? generatedAt,
