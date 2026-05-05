@@ -579,6 +579,20 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
           )}
         </div>
       </SheetContent>
+      {picked && (
+        <AICoverDialog
+          open={aiCoverOpen}
+          onOpenChange={setAiCoverOpen}
+          title={picked.title}
+          author={picked.author}
+          year={picked.year}
+          hint={tagsRaw}
+          onGenerated={(url) => {
+            setCoverPreview(url);
+            setCoverSource("ai-generated");
+          }}
+        />
+      )}
     </Sheet>
   );
 }
