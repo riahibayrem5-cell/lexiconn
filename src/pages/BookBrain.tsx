@@ -810,6 +810,17 @@ export default function BookBrain() {
           )}
         </aside>
       </div>
+      <AICoverDialog
+        open={aiCoverOpen}
+        onOpenChange={setAiCoverOpen}
+        title={book.title}
+        author={book.author}
+        year={book.year}
+        hint={book.tags.join(", ")}
+        onGenerated={(url) =>
+          updateBook(book.id, (b) => ({ ...b, coverUrl: url, coverSource: "ai-generated" }))
+        }
+      />
     </div>
   );
 }
