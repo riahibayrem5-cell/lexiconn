@@ -7,12 +7,13 @@ import { searchOpenLibrary, OLResult } from "@/lib/openlibrary";
 import { acquireCover, uploadCustomCover } from "@/lib/covers";
 import { useLibrary } from "@/lib/storage";
 import { BookStatus, BookFormat, Book } from "@/lib/types";
-import { Loader2, Search, BookOpen, Upload, Wand2 } from "lucide-react";
+import { Loader2, Search, BookOpen, Upload, Wand2, Sparkles } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { logHistory } from "@/lib/history";
+import { AICoverDialog } from "@/components/AICoverDialog";
 
 interface Props { open: boolean; onOpenChange: (o: boolean) => void; }
 
