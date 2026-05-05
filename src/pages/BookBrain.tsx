@@ -315,6 +315,19 @@ export default function BookBrain() {
           <Button onClick={refreshMetadata} disabled={refreshingMeta} variant="outline" size="sm" className="border-primary/40 text-primary">
             {refreshingMeta ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-2" />} Improve details
           </Button>
+          <Button
+            onClick={generateAndSaveDossier}
+            disabled={generatingDossier}
+            variant="outline"
+            size="sm"
+            className="border-primary/40 text-primary"
+            title={hasDossier ? "Open in the Memory Vault" : "Generate a full dossier and save it to the Memory Vault"}
+          >
+            {generatingDossier
+              ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+              : <ScrollText className="h-3.5 w-3.5 mr-2" />}
+            {hasDossier ? "Open dossier" : generatingDossier ? "Composing…" : "Generate dossier"}
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm" className="border-destructive/50 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete</Button>
