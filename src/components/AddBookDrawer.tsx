@@ -75,6 +75,7 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
   const [coverSource, setCoverSource] = useState<NonNullable<Book["coverSource"]>>("none");
   const [acquiring, setAcquiring] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [aiCoverOpen, setAiCoverOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
