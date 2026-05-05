@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { enrichBookMetadata } from "@/lib/openlibrary";
 import { acquireCover } from "@/lib/covers";
 import { AICoverDialog } from "@/components/AICoverDialog";
+import { generateDossier, loadDossier, saveDossierRemote } from "@/lib/dossier";
+import { ScrollText } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   consumeEditionApply,
