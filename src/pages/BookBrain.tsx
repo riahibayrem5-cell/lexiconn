@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { enrichBookMetadata } from "@/lib/openlibrary";
 import { acquireCover } from "@/lib/covers";
+import { AICoverDialog } from "@/components/AICoverDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   consumeEditionApply,
@@ -61,6 +62,7 @@ export default function BookBrain() {
   const [loadingSuggested, setLoadingSuggested] = useState(false);
   const [refreshingMeta, setRefreshingMeta] = useState(false);
   const [generatingSpine, setGeneratingSpine] = useState(false);
+  const [aiCoverOpen, setAiCoverOpen] = useState(false);
 
   // Edition handoff from the Recommendations page (sessionStorage).
   const { recs } = useSavedRecs();
@@ -338,6 +340,17 @@ export default function BookBrain() {
               </div>
             )}
             <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none" />
+          </div>
+          <div className="flex justify-center">
+            <Button
+              onClick={() => setAiCoverOpen(true)}
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[0.6rem] tracking-[0.2em] uppercase text-primary hover:text-primary-glow"
+            >
+              <Wand2 className="h-3 w-3 mr-1.5" />
+              {book.coverSource === "ai-generated" ? "Regenerate AI cover" : "Generate AI cover"}
+            </Button>
           </div>
 
           <div className="text-center space-y-2">
@@ -797,6 +810,17 @@ export default function BookBrain() {
           )}
         </aside>
       </div>
+      <AICoverDialog
+        open={aiCoverOpen}
+        onOpenChange={setAiCoverOpen}
+        title={book.title}
+        author={book.author}
+        year={book.year}
+        hint={book.tags.join(", ")}
+        onGenerated={(url) =>
+          updateBook(book.id, (b) => ({ ...b, coverUrl: url, coverSource: "ai-generated" }))
+        }
+      />
     </div>
   );
 }

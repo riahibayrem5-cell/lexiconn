@@ -7,12 +7,13 @@ import { searchOpenLibrary, OLResult } from "@/lib/openlibrary";
 import { acquireCover, uploadCustomCover } from "@/lib/covers";
 import { useLibrary } from "@/lib/storage";
 import { BookStatus, BookFormat, Book } from "@/lib/types";
-import { Loader2, Search, BookOpen, Upload, Wand2 } from "lucide-react";
+import { Loader2, Search, BookOpen, Upload, Wand2, Sparkles } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { logHistory } from "@/lib/history";
+import { AICoverDialog } from "@/components/AICoverDialog";
 
 interface Props { open: boolean; onOpenChange: (o: boolean) => void; }
 
@@ -74,6 +75,7 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
   const [coverSource, setCoverSource] = useState<NonNullable<Book["coverSource"]>>("none");
   const [acquiring, setAcquiring] = useState(false);
   const [enriching, setEnriching] = useState(false);
+  const [aiCoverOpen, setAiCoverOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -350,6 +352,9 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
                               : coverSource === "google" ? "Google Books"
                               : coverSource === "gutendex" ? "Project Gutenberg"
                               : coverSource === "internetarchive" ? "Internet Archive"
+                              : coverSource === "librarything" ? "LibraryThing"
+                              : coverSource === "wikipedia" ? "Wikipedia"
+                              : coverSource === "ai-generated" ? "AI generated"
                               : "Uploaded"}
                     </div>
                   )}
@@ -373,6 +378,14 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
                     >
                       <Search className="h-3 w-3" /> Retry search
                     </button>
+                    {coverSource === "none" && !acquiring && (
+                      <button
+                        onClick={() => setAiCoverOpen(true)}
+                        className="inline-flex items-center gap-1.5 text-[0.65rem] mono uppercase tracking-[0.2em] text-primary hover:text-primary-glow transition-colors"
+                      >
+                        <Sparkles className="h-3 w-3" /> AI cover
+                      </button>
+                    )}
                     <button onClick={() => setPicked(null)} className="text-[0.65rem] mono uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors">
                       ← Search again
                     </button>
@@ -566,6 +579,20 @@ export function AddBookDrawer({ open, onOpenChange }: Props) {
           )}
         </div>
       </SheetContent>
+      {picked && (
+        <AICoverDialog
+          open={aiCoverOpen}
+          onOpenChange={setAiCoverOpen}
+          title={picked.title}
+          author={picked.author}
+          year={picked.year}
+          hint={tagsRaw}
+          onGenerated={(url) => {
+            setCoverPreview(url);
+            setCoverSource("ai-generated");
+          }}
+        />
+      )}
     </Sheet>
   );
 }

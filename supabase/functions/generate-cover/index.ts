@@ -11,14 +11,21 @@ interface Body {
   title: string;
   author: string;
   year?: number;
-  hint?: string; // optional mood / tag hint
+  hint?: string;
+  style?: string;        // e.g. "Penguin Classics", "NYRB", "Modernist", "Brutalist", "Watercolor"
+  palette?: string;      // e.g. "muted earth tones", "stark black & red", "pastel"
+  mood?: string;         // e.g. "melancholic", "haunting", "luminous"
+  typography?: string;   // e.g. "serif display", "bold sans", "hand-lettered"
+  imagery?: string;      // e.g. "abstract", "botanical", "geometric"
+  extra?: string;        // free-form user instructions
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { title, author, year, hint } = (await req.json()) as Body;
+    const body = (await req.json()) as Body;
+    const { title, author, year, hint, style, palette, mood, typography, imagery, extra } = body;
     if (!title || !author) {
       return new Response(JSON.stringify({ error: "title and author required" }), {
         status: 400,
@@ -32,9 +39,16 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    const prompt = `Design a realistic, editorial book cover for the novel "${title}" by ${author}${
+    const styleLine = style ? `Design language: ${style}.` : `Design language: serious literary press (Penguin Classics, NYRB, Faber, Knopf).`;
+    const paletteLine = palette ? `Color palette: ${palette}.` : "";
+    const moodLine = mood ? `Mood: ${mood}.` : "";
+    const typoLine = typography ? `Typography: ${typography}.` : "Typographic title and author name clearly legible.";
+    const imageryLine = imagery ? `Imagery: ${imagery}.` : "";
+    const extraLine = extra ? `Additional direction: ${extra}.` : "";
+
+    const prompt = `Design a realistic, editorial book cover for "${title}" by ${author}${
       year ? ` (${year})` : ""
-    }. ${hint ? `Mood and themes: ${hint}.` : ""} Vertical 2:3 aspect ratio. Dignified literary cover design as if published by a serious literary press (Penguin Classics, NYRB, Faber, Knopf). Typographic title and author name clearly legible. No people's faces unless abstract. Rich textures, considered color palette. Absolutely no watermarks, no fake barcodes, no QR codes, no logos.`;
+    }. ${hint ? `Themes: ${hint}.` : ""} ${styleLine} ${paletteLine} ${moodLine} ${typoLine} ${imageryLine} ${extraLine} Vertical 2:3 aspect ratio. Dignified, considered. No people's faces unless abstract. No watermarks, no fake barcodes, no QR codes, no logos.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

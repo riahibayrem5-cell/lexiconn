@@ -101,7 +101,7 @@ export interface Book {
   // Customization
   spineTexture?: "leather" | "cloth" | "paper";
   foilStyle?: "gold" | "silver" | "none";
-  coverSource?: "openlibrary" | "google" | "gutendex" | "internetarchive" | "librarything" | "wikipedia" | "uploaded" | "none";
+  coverSource?: "openlibrary" | "google" | "gutendex" | "internetarchive" | "librarything" | "wikipedia" | "uploaded" | "ai-generated" | "none";
 }
 
 export interface AppSettings {
