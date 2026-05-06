@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 import { useAdminSettings, type PageKey } from "@/lib/adminSettings";
+import { useLang } from "@/lib/i18n";
 
 const items = [
   { to: "/", label: "Shelf", icon: Library, end: true },
@@ -11,7 +12,7 @@ const items = [
   { to: "/oracle", label: "Concierge", icon: Sparkles },
   { to: "/ritual", label: "Reading Ritual", icon: Timer },
   { to: "/quotes", label: "Quotes Vault", icon: Quote },
-  
+
   { to: "/history", label: "Book History", icon: BookMarked },
   { to: "/archive", label: "Archive", icon: CalendarDays },
   { to: "/review", label: "Review Desk", icon: ClipboardCheck },
@@ -25,11 +26,12 @@ export function AppSidebar({ collapsed, onToggle }: Props) {
   const navigate = useNavigate();
   const { user, loading, signOut } = useAuth();
   const { settings } = useAdminSettings();
+  const { t, lang } = useLang();
   const initial = (user?.user_metadata?.display_name || user?.email || "G")
     .toString().trim().charAt(0).toUpperCase();
   const handleSignOut = async () => {
     await signOut();
-    toast.success("Signed out");
+    toast.success(t("Signed out", "Signed out"));
     navigate("/auth", { replace: true });
   };
   return (
@@ -47,18 +49,22 @@ export function AppSidebar({ collapsed, onToggle }: Props) {
         <button
           onClick={onToggle}
           className="group h-16 flex items-center gap-3 px-4 border-b border-sidebar-border hover:bg-sidebar-accent/40 transition-colors"
-          aria-label="Toggle sidebar"
+          aria-label={t("Toggle sidebar")}
         >
           <div className="relative shrink-0">
             <div className="w-8 h-8 border border-primary/60 flex items-center justify-center font-display text-primary text-lg lamp-flicker">
-              {settings.brandInitial.slice(0, 2)}
+              {lang === "ar" ? "ل" : settings.brandInitial.slice(0, 2)}
             </div>
             <div className="absolute -bottom-1 -right-1 w-1.5 h-1.5 rounded-full bg-primary/70 shadow-gold" />
           </div>
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="font-display text-[1.05rem] tracking-[0.18em] text-foreground">{settings.brandName}</span>
-              <span className="mono text-[0.55rem] tracking-[0.3em] text-muted-foreground">{settings.establishedText}</span>
+              <span className="font-display text-[1.05rem] tracking-[0.18em] text-foreground">
+                {lang === "ar" ? "ليكسيكون" : settings.brandName}
+              </span>
+              <span className="mono text-[0.55rem] tracking-[0.3em] text-muted-foreground">
+                {lang === "ar" ? `تأسس ${new Date().getFullYear()}` : settings.establishedText}
+              </span>
             </div>
           )}
         </button>
@@ -67,7 +73,7 @@ export function AppSidebar({ collapsed, onToggle }: Props) {
           {items.filter(item => settings.nav[item.to as PageKey]?.visible !== false).map(item => {
             const Icon = item.icon;
             const active = item.end ? loc.pathname === item.to : loc.pathname.startsWith(item.to);
-            const label = settings.nav[item.to as PageKey]?.label ?? item.label;
+            const label = t(settings.nav[item.to as PageKey]?.label ?? item.label, settings.nav[item.to as PageKey]?.label ?? item.label);
             return (
               <NavLink
                 key={item.to}
@@ -108,7 +114,7 @@ export function AppSidebar({ collapsed, onToggle }: Props) {
                 "w-full flex items-center gap-3 px-2 py-2 rounded-sm",
                 "hover:bg-sidebar-accent/60 transition-colors text-left"
               )}
-              aria-label={user ? "Sign out" : "Sign in"}
+              aria-label={user ? t("Sign out") : t("Sign in")}
             >
               <div className="w-7 h-7 shrink-0 rounded-full bg-primary/15 border border-primary/40 flex items-center justify-center font-display text-primary text-xs">
                 {initial}
@@ -116,11 +122,11 @@ export function AppSidebar({ collapsed, onToggle }: Props) {
               {!collapsed && (
                 <div className="min-w-0 flex-1">
                   <div className="font-display text-xs text-foreground truncate">
-                    {user?.user_metadata?.display_name || user?.email || "Guest shelf"}
+                    {user?.user_metadata?.display_name || user?.email || t("Guest shelf")}
                   </div>
                   <div className="mono text-[0.5rem] tracking-[0.25em] uppercase text-muted-foreground flex items-center gap-1">
                     {user ? <LogOut className="h-2.5 w-2.5" /> : <LogIn className="h-2.5 w-2.5" />}
-                    {user ? "Sign out" : "Sign in to sync"}
+                    {user ? t("Sign out") : t("Sign in to sync")}
                   </div>
                 </div>
               )}

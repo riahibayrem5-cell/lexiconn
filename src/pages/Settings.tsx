@@ -17,9 +17,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { importGoodreadsCsv } from "@/lib/goodreadsImport";
 import { useReadingGoals } from "@/lib/goals";
 import { Target } from "lucide-react";
+import { useLang } from "@/lib/i18n";
+import { Languages } from "lucide-react";
 
 export default function Settings() {
   const { exportAll, importAll, books, isGuest, addBook } = useLibrary();
+  const { lang, setLang, t } = useLang();
   const fileRef = useRef<HTMLInputElement>(null);
   const grCsvRef = useRef<HTMLInputElement>(null);
   const [grCsvBusy, setGrCsvBusy] = useState(false);
@@ -116,6 +119,44 @@ export default function Settings() {
       />
 
       <div className="px-4 sm:px-8 lg:px-14 mt-8 max-w-4xl space-y-6">
+
+        {/* LANGUAGE */}
+        <section className="ink-card rounded-sm p-6 space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="eyebrow">{t("Language")}</p>
+              <p className="font-serif italic text-muted-foreground mt-1">
+                {t("Choose your preferred language. The interface, brand, and AI responses will all switch.")}
+              </p>
+            </div>
+            <div className="h-11 w-11 rounded-full border border-primary/50 text-primary grid place-items-center shadow-foil">
+              <Languages className="h-5 w-5" />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => { setLang("en"); toast.success("Language · English"); }}
+              className={cn(
+                "rounded-sm border p-4 text-left transition-all",
+                lang === "en" ? "border-primary bg-primary/10 shadow-foil" : "border-border/60 hover:border-border-strong/60"
+              )}
+            >
+              <p className="font-display text-xl text-foreground">English</p>
+              <p className="font-serif italic text-sm text-muted-foreground mt-1">Default · LTR</p>
+            </button>
+            <button
+              onClick={() => { setLang("ar"); toast.success("اللغة · العربية"); }}
+              className={cn(
+                "rounded-sm border p-4 text-left transition-all",
+                lang === "ar" ? "border-primary bg-primary/10 shadow-foil" : "border-border/60 hover:border-border-strong/60"
+              )}
+              dir="rtl"
+            >
+              <p className="font-display text-2xl text-foreground" style={{ fontFamily: '"Amiri", "Noto Naskh Arabic", serif' }}>العربية</p>
+              <p className="font-serif text-sm text-muted-foreground mt-1" style={{ fontFamily: '"Noto Naskh Arabic", serif' }}>اتجاه النص من اليمين إلى اليسار</p>
+            </button>
+          </div>
+        </section>
 
         {/* THEMES */}
         <section className="ink-card rounded-sm p-6 space-y-5">

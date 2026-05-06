@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLibrary } from "@/lib/storage";
+import { getCurrentLang } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles } from "lucide-react";
@@ -46,6 +47,7 @@ export default function Archive() {
       const { data, error } = await supabase.functions.invoke("oracle", {
         body: {
           mode: "wrapped",
+          language: getCurrentLang(),
           input: {
             year,
             books: yearBooks.map(b => ({

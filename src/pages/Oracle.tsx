@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { searchOpenLibrary, OLResult } from "@/lib/openlibrary";
 import { useAdminSettings } from "@/lib/adminSettings";
+import { useLang } from "@/lib/i18n";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -97,6 +98,7 @@ const PREFS_KEY = "lexicon-oracle-prefs";
 export default function Oracle() {
   const { books, addBook } = useLibrary();
   const { settings } = useAdminSettings();
+  const { lang } = useLang();
   const [mode, setMode] = useState<Mode>("chat");
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState<string>("");
@@ -230,6 +232,7 @@ export default function Oracle() {
           messages: next,
           context: contextPack,
           persona, lens, model, reasoning,
+          language: lang,
         }),
       });
 
@@ -328,7 +331,7 @@ export default function Oracle() {
         };
       }
 
-      const { data, error } = await supabase.functions.invoke("oracle", { body: payload });
+      const { data, error } = await supabase.functions.invoke("oracle", { body: { ...payload, language: lang } });
       if (error) throw error;
       if (data?.error) toast.error(data.error);
       else {

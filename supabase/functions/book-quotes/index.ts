@@ -10,13 +10,14 @@ interface Body {
   author: string;
   year?: number;
   count?: number;
+  language?: "en" | "ar";
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { title, author, year, count = 6 } = (await req.json()) as Body;
+    const { title, author, year, count = 6, language } = (await req.json()) as Body;
     if (!title || !author) {
       return new Response(JSON.stringify({ error: "title and author required" }), {
         status: 400,
@@ -27,9 +28,14 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
-    const system = `You are a literary archivist. You only return quotes you are confident appear verbatim in the named book. If you are not confident, omit that quote rather than invent one. Never paraphrase. Never hallucinate page numbers — leave page blank if unsure.`;
+    const isArabic = language === "ar";
+    const langSys = isArabic
+      ? " For each quote, return the text translated into fluent literary Arabic preserving the meaning faithfully (or, if a recognized Arabic translation of this book exists, the corresponding Arabic line). The `context` and `theme` fields must also be in Arabic."
+      : "";
 
-    const user = `Return ${count} of the most resonant, widely-cited verbatim quotations from the book "${title}" by ${author}${year ? ` (${year})` : ""}. Prefer lines that capture the book's central themes, philosophy, or most memorable prose. Each quote MUST be word-for-word accurate.`;
+    const system = `You are a literary archivist. You only return quotes you are confident appear verbatim in the named book. If you are not confident, omit that quote rather than invent one. Never paraphrase. Never hallucinate page numbers — leave page blank if unsure.${langSys}`;
+
+    const user = `Return ${count} of the most resonant, widely-cited verbatim quotations from the book "${title}" by ${author}${year ? ` (${year})` : ""}. Prefer lines that capture the book's central themes, philosophy, or most memorable prose. Each quote MUST be word-for-word accurate.${isArabic ? " Output every field in Arabic." : ""}`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

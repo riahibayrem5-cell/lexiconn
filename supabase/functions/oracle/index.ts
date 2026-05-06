@@ -56,11 +56,16 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { mode, input, book } = await req.json();
+    const { mode, input, book, language } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
     const prompt = buildPrompt(mode, input, book);
+
+    const isArabic = language === "ar";
+    const arabicSys = isArabic
+      ? " IMPORTANT: Respond entirely in fluent literary Modern Standard Arabic (الفصحى). Use proper Arabic punctuation. For the 'what-next' JSON mode, render `title`, `author`, `description`, and `qualitySignal` in Arabic, BUT keep `searchQuery` in English/Latin script (it is used to query an English book catalog). For all other modes, every word of the response must be Arabic."
+      : "";
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -68,7 +73,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYS },
+          { role: "system", content: SYS + arabicSys },
           { role: "user", content: prompt },
         ],
       }),

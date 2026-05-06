@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Loader2, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useLang } from "@/lib/i18n";
 
 const STYLES = [
   "Penguin Classics", "NYRB Editions", "Faber poetry", "Modernist",
@@ -32,6 +33,7 @@ interface Props {
 }
 
 export function AICoverDialog({ open, onOpenChange, title, author, year, hint, onGenerated }: Props) {
+  const { lang } = useLang();
   const [style, setStyle] = useState(STYLES[0]);
   const [palette, setPalette] = useState(PALETTES[0]);
   const [mood, setMood] = useState(MOODS[0]);
@@ -44,7 +46,7 @@ export function AICoverDialog({ open, onOpenChange, title, author, year, hint, o
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-cover", {
-        body: { title, author, year, hint, style, palette, mood, typography, imagery, extra },
+        body: { title, author, year, hint, style, palette, mood, typography, imagery, extra, language: lang },
       });
       if (error) throw error;
       if (!data?.url) throw new Error("No image returned");

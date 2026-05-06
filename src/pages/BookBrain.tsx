@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useLibrary } from "@/lib/storage";
+import { getCurrentLang } from "@/lib/i18n";
 import { RatingDial } from "@/components/RatingDial";
 import { EmotionalArc } from "@/components/EmotionalArc";
 import { Button } from "@/components/ui/button";
@@ -122,6 +123,7 @@ export default function BookBrain() {
       const { data, error } = await supabase.functions.invoke("oracle", {
         body: {
           mode: "dissection",
+          language: getCurrentLang(),
           book: {
             title: book.title, author: book.author, year: book.year,
             tags: book.tags,
@@ -150,7 +152,7 @@ export default function BookBrain() {
     setLoadingSuggested(true);
     try {
       const { data, error } = await supabase.functions.invoke("book-quotes", {
-        body: { title: book.title, author: book.author, year: book.year, count: 6 },
+        body: { title: book.title, author: book.author, year: book.year, count: 6, language: getCurrentLang() },
       });
       if (error) throw error;
       if (data?.error) {

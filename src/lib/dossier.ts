@@ -1,6 +1,7 @@
 // Persistent book dossiers — saved in DB for signed-in users (forever, across devices),
 // falls back to localStorage for guests.
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentLang } from "@/lib/i18n";
 
 export interface DossierIdea { idea: string; explanation: string; whyItMatters: string; }
 export interface DossierCharacter { name: string; role: string; description: string; arc?: string; }
@@ -132,7 +133,9 @@ export async function generateDossier(args: {
   mode?: "create" | "extend";
   existing?: BookDossier;
 }) {
-  const { data, error } = await supabase.functions.invoke("book-dossier", { body: args });
+  const { data, error } = await supabase.functions.invoke("book-dossier", {
+    body: { ...args, language: getCurrentLang() },
+  });
   if (error) throw error;
   if (!data?.dossier) throw new Error("Empty response");
   return data as { dossier: BookDossier; generatedAt: string };

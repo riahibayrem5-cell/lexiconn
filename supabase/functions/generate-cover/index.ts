@@ -18,6 +18,7 @@ interface Body {
   typography?: string;   // e.g. "serif display", "bold sans", "hand-lettered"
   imagery?: string;      // e.g. "abstract", "botanical", "geometric"
   extra?: string;        // free-form user instructions
+  language?: "en" | "ar";
 }
 
 Deno.serve(async (req) => {
@@ -25,7 +26,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = (await req.json()) as Body;
-    const { title, author, year, hint, style, palette, mood, typography, imagery, extra } = body;
+    const { title, author, year, hint, style, palette, mood, typography, imagery, extra, language } = body;
     if (!title || !author) {
       return new Response(JSON.stringify({ error: "title and author required" }), {
         status: 400,
@@ -39,6 +40,8 @@ Deno.serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+    const isArabic = language === "ar";
+
     const styleLine = style ? `Design language: ${style}.` : `Design language: serious literary press (Penguin Classics, NYRB, Faber, Knopf).`;
     const paletteLine = palette ? `Color palette: ${palette}.` : "";
     const moodLine = mood ? `Mood: ${mood}.` : "";
@@ -46,9 +49,13 @@ Deno.serve(async (req) => {
     const imageryLine = imagery ? `Imagery: ${imagery}.` : "";
     const extraLine = extra ? `Additional direction: ${extra}.` : "";
 
+    const arabicBlock = isArabic
+      ? ` LANGUAGE OF ALL TEXT ON THE COVER: Arabic only. Render the title and author entirely in beautifully typeset Arabic script (Naskh or Thuluth-inspired serif). The title should be the Arabic translation/transliteration of "${title}" and the author should be "${author}" rendered in Arabic letters. Right-to-left typesetting. Use elegant Arabic calligraphy aesthetics — diacritics optional. NO Latin letters anywhere on the cover. Spelling must be perfectly correct Arabic. `
+      : "";
+
     const prompt = `Design a realistic, editorial book cover for "${title}" by ${author}${
       year ? ` (${year})` : ""
-    }. ${hint ? `Themes: ${hint}.` : ""} ${styleLine} ${paletteLine} ${moodLine} ${typoLine} ${imageryLine} ${extraLine} Vertical 2:3 aspect ratio. Dignified, considered. No people's faces unless abstract. No watermarks, no fake barcodes, no QR codes, no logos.`;
+    }. ${hint ? `Themes: ${hint}.` : ""} ${styleLine} ${paletteLine} ${moodLine} ${typoLine} ${imageryLine} ${extraLine}${arabicBlock} Vertical 2:3 aspect ratio. Dignified, considered. No people's faces unless abstract. No watermarks, no fake barcodes, no QR codes, no logos.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

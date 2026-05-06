@@ -115,7 +115,7 @@ const SCHEMA = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { title, author, year, mode, existing } = await req.json();
+    const { title, author, year, mode, existing, language } = await req.json();
     if (!title || !author) {
       return new Response(JSON.stringify({ error: "title and author required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -125,6 +125,11 @@ Deno.serve(async (req) => {
     if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
 
     const isExtend = mode === "extend" && existing;
+    const isArabic = language === "ar";
+
+    const langDirective = isArabic
+      ? "CRITICAL: Write EVERY field of the dossier in fluent, literary Modern Standard Arabic (الفصحى). All strings — oneLiner, summary, themes, mainIdeas, characters, timeline, keyQuotes (translate quotes into Arabic, preserving meaning), symbols, lessons, discussionQuestions, criticisms, ifYouLiked.why, ending, twists, genre, setting, moodTags — must be Arabic. Do not mix English and Arabic in any field. Use proper Arabic punctuation (، and ؛ and ؟). Names of authors and book titles should appear in Arabic when a well-known Arabic translation/transliteration exists, otherwise transliterate carefully."
+      : "Write everything in English.";
 
     const systemPrompt = isExtend
       ? [
@@ -137,6 +142,7 @@ Deno.serve(async (req) => {
           "- Add new discussion questions, new criticisms, new recommendations.",
           "- Keep summary spoiler-free; spoilers stay in timeline/ending/twists.",
           "Be generous, specific, accurate. No invented facts.",
+          langDirective,
         ].join(" ")
       : [
           "You are a literary scholar writing a personal memory dossier for a reader who finished a book.",
@@ -145,11 +151,12 @@ Deno.serve(async (req) => {
           "For characters, include all major characters (typically 4-10).",
           "For timeline, cover beginning, rising action, midpoint, climax, resolution.",
           "Spoilers belong in: timeline, ending, twists. Keep summary spoiler-free.",
+          langDirective,
         ].join(" ");
 
     const userContent = isExtend
-      ? `Extend the dossier for: "${title}" by ${author}${year ? ` (${year})` : ""}.\n\nPREVIOUS DOSSIER:\n${JSON.stringify(existing, null, 2)}\n\nReturn a richer, deeper version with NEW insights. Do not just copy — go further.`
-      : `Build the complete dossier for: "${title}" by ${author}${year ? ` (${year})` : ""}.`;
+      ? `Extend the dossier for: "${title}" by ${author}${year ? ` (${year})` : ""}.\n\nPREVIOUS DOSSIER:\n${JSON.stringify(existing, null, 2)}\n\nReturn a richer, deeper version with NEW insights. Do not just copy — go further.${isArabic ? " Respond entirely in Arabic." : ""}`
+      : `Build the complete dossier for: "${title}" by ${author}${year ? ` (${year})` : ""}.${isArabic ? " Respond entirely in Arabic." : ""}`;
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

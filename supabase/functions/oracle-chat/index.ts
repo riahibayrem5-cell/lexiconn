@@ -36,13 +36,14 @@ interface Body {
   lens?: string;
   model?: string;
   reasoning?: "minimal" | "low" | "medium" | "high";
+  language?: "en" | "ar";
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, context, persona = "editor", lens = "literary", model = "google/gemini-3-flash-preview", reasoning } = (await req.json()) as Body;
+    const { messages, context, persona = "editor", lens = "literary", model = "google/gemini-3-flash-preview", reasoning, language = "en" } = (await req.json()) as Body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
@@ -53,7 +54,11 @@ Deno.serve(async (req) => {
       ? `\n\nREADER CONTEXT (use this; do not invent facts):\n${JSON.stringify(context).slice(0, 12000)}`
       : "";
 
-    const system = `${SYS_BASE}\n\nVoice: ${personaText}\nLens: ${lensText}${ctxBlock}`;
+    const langLine = language === "ar"
+      ? `\n\nLANGUAGE: Respond ENTIRELY in fluent literary Modern Standard Arabic (الفصحى). Translate any English book titles or quotes into Arabic when a recognized Arabic edition exists, otherwise transliterate carefully. Use proper Arabic punctuation. Never mix English sentences into the reply. Markdown formatting still applies.`
+      : "";
+
+    const system = `${SYS_BASE}${langLine}\n\nVoice: ${personaText}\nLens: ${lensText}${ctxBlock}`;
 
     const body: any = {
       model,

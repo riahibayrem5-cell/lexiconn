@@ -34,9 +34,14 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { mode, input } = await req.json();
+    const { mode, input, language } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
+
+    const isArabic = language === "ar";
+    const arabicSys = isArabic
+      ? " IMPORTANT: Respond entirely in fluent literary Modern Standard Arabic. For 'pick' mode, keep `bookTitle` exactly as it appears in the provided list (do NOT translate it), but write `reason` in Arabic."
+      : "";
 
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -44,7 +49,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYS },
+          { role: "system", content: SYS + arabicSys },
           { role: "user", content: buildPrompt(mode, input) },
         ],
       }),
