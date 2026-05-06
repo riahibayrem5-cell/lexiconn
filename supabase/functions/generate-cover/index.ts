@@ -18,6 +18,7 @@ interface Body {
   typography?: string;   // e.g. "serif display", "bold sans", "hand-lettered"
   imagery?: string;      // e.g. "abstract", "botanical", "geometric"
   extra?: string;        // free-form user instructions
+  language?: "en" | "ar";
 }
 
 Deno.serve(async (req) => {
@@ -25,7 +26,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = (await req.json()) as Body;
-    const { title, author, year, hint, style, palette, mood, typography, imagery, extra } = body;
+    const { title, author, year, hint, style, palette, mood, typography, imagery, extra, language } = body;
     if (!title || !author) {
       return new Response(JSON.stringify({ error: "title and author required" }), {
         status: 400,
@@ -38,6 +39,8 @@ Deno.serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const isArabic = language === "ar";
 
     const styleLine = style ? `Design language: ${style}.` : `Design language: serious literary press (Penguin Classics, NYRB, Faber, Knopf).`;
     const paletteLine = palette ? `Color palette: ${palette}.` : "";
