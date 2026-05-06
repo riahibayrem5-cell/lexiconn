@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { useLocation } from "react-router-dom";
 import { useAdminSettings, type PageKey } from "@/lib/adminSettings";
+import { useLang } from "@/lib/i18n";
 
 interface Props {
   eyebrow?: string;
@@ -12,10 +13,25 @@ interface Props {
 export function PageHeader({ eyebrow, title, subtitle, right }: Props) {
   const { pathname } = useLocation();
   const { settings } = useAdminSettings();
+  const { t } = useLang();
   const copy = settings.pages[pathname as PageKey];
-  const renderedEyebrow = copy?.eyebrow ?? eyebrow;
-  const renderedTitle = copy ? <>{copy.title} <em className="font-display italic text-primary/90">{copy.emphasis}</em></> : title;
-  const renderedSubtitle = copy?.subtitle ?? subtitle;
+
+  // Translate via dictionary; falls through to original strings in English.
+  const tx = (s?: string) => (s ? t(s, s) : s);
+
+  const renderedEyebrow = tx(copy?.eyebrow ?? eyebrow);
+  const renderedTitle = copy ? (
+    <>
+      {tx(copy.title)}{" "}
+      <em className="font-display italic text-primary/90">{tx(copy.emphasis)}</em>
+    </>
+  ) : (
+    typeof title === "string" ? tx(title) : title
+  );
+  const renderedSubtitle = typeof (copy?.subtitle ?? subtitle) === "string"
+    ? tx((copy?.subtitle ?? subtitle) as string)
+    : (copy?.subtitle ?? subtitle);
+
   return (
     <header className="relative px-4 sm:px-8 lg:px-14 pt-12 pb-8 border-b border-border/60">
       <div className="flex items-end justify-between gap-6 flex-wrap">
