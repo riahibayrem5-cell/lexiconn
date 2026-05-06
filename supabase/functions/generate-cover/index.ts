@@ -49,9 +49,13 @@ Deno.serve(async (req) => {
     const imageryLine = imagery ? `Imagery: ${imagery}.` : "";
     const extraLine = extra ? `Additional direction: ${extra}.` : "";
 
+    const arabicBlock = isArabic
+      ? ` LANGUAGE OF ALL TEXT ON THE COVER: Arabic only. Render the title and author entirely in beautifully typeset Arabic script (Naskh or Thuluth-inspired serif). The title should be the Arabic translation/transliteration of "${title}" and the author should be "${author}" rendered in Arabic letters. Right-to-left typesetting. Use elegant Arabic calligraphy aesthetics — diacritics optional. NO Latin letters anywhere on the cover. Spelling must be perfectly correct Arabic. `
+      : "";
+
     const prompt = `Design a realistic, editorial book cover for "${title}" by ${author}${
       year ? ` (${year})` : ""
-    }. ${hint ? `Themes: ${hint}.` : ""} ${styleLine} ${paletteLine} ${moodLine} ${typoLine} ${imageryLine} ${extraLine} Vertical 2:3 aspect ratio. Dignified, considered. No people's faces unless abstract. No watermarks, no fake barcodes, no QR codes, no logos.`;
+    }. ${hint ? `Themes: ${hint}.` : ""} ${styleLine} ${paletteLine} ${moodLine} ${typoLine} ${imageryLine} ${extraLine}${arabicBlock} Vertical 2:3 aspect ratio. Dignified, considered. No people's faces unless abstract. No watermarks, no fake barcodes, no QR codes, no logos.`;
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
