@@ -137,6 +137,7 @@ export default function Ritual() {
       const { data } = await supabase.functions.invoke("ritual-coach", {
         body: {
           mode: "reflect",
+          language: getCurrentLang(),
           input: {
             title: selectedBook.title, author: selectedBook.author,
             minutes: durationMin,
