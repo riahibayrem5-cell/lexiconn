@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLibrary } from "@/lib/storage";
+import { getCurrentLang } from "@/lib/i18n";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,7 @@ export default function Ritual() {
       const { data } = await supabase.functions.invoke("ritual-coach", {
         body: {
           mode: "nudge",
+          language: getCurrentLang(),
           input: {
             title: selectedBook.title, author: selectedBook.author,
             minutes, mood: pulse ? MOODS[pulse - 1] : undefined,
@@ -105,7 +107,7 @@ export default function Ritual() {
         }),
       };
       const { data } = await supabase.functions.invoke("ritual-coach", {
-        body: { mode: "pick", input: payload },
+        body: { mode: "pick", input: payload, language: getCurrentLang() },
       });
       if (data?.error) { toast.error(data.error); return; }
       const txt = (data?.text || "").trim();
