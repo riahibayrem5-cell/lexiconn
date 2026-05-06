@@ -91,6 +91,16 @@ export default function BookBrain() {
     ).slice(0, 4);
   }, [recs, book]);
 
+  // Track whether this book already has a saved dossier
+  useEffect(() => {
+    if (!book?.id) return;
+    let cancelled = false;
+    loadDossier(book.id).then(d => { if (!cancelled) setHasDossier(!!d); });
+    const refresh = () => loadDossier(book.id).then(d => !cancelled && setHasDossier(!!d));
+    window.addEventListener("lexicon-dossier-change", refresh);
+    return () => { cancelled = true; window.removeEventListener("lexicon-dossier-change", refresh); };
+  }, [book?.id]);
+
   if (!book) {
     return (
       <div className="px-14 py-20">
