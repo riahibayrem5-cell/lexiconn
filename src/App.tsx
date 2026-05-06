@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppLayout } from "@/components/AppLayout";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
+import { LangProvider } from "@/lib/i18n";
 import Shelf from "./pages/Shelf"; // eager: default route, fastest first paint
 
 const Auth = lazy(() => import("./pages/Auth"));
@@ -43,34 +44,36 @@ const RouteFallback = () => (
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <TooltipProvider delayDuration={150}>
-            <Toaster />
-            <Sonner />
-            <Suspense fallback={<RouteFallback />}>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route element={<AppLayout />}>
-                  <Route path="/" element={<Shelf />} />
-                  <Route path="/book/:id" element={<BookBrain />} />
-                  <Route path="/review" element={<Review />} />
-                  <Route path="/oracle" element={<Oracle />} />
-                  <Route path="/ritual" element={<Ritual />} />
-                  <Route path="/quotes" element={<Quotes />} />
-                  <Route path="/archive" element={<Archive />} />
-                  <Route path="/recommendations" element={<Recommendations />} />
-                  
-                  <Route path="/history" element={<History />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/admin" element={<AdminPanel />} />
-                </Route>
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </TooltipProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <LangProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <TooltipProvider delayDuration={150}>
+              <Toaster />
+              <Sonner />
+              <Suspense fallback={<RouteFallback />}>
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route element={<AppLayout />}>
+                    <Route path="/" element={<Shelf />} />
+                    <Route path="/book/:id" element={<BookBrain />} />
+                    <Route path="/review" element={<Review />} />
+                    <Route path="/oracle" element={<Oracle />} />
+                    <Route path="/ritual" element={<Ritual />} />
+                    <Route path="/quotes" element={<Quotes />} />
+                    <Route path="/archive" element={<Archive />} />
+                    <Route path="/recommendations" element={<Recommendations />} />
+
+                    <Route path="/history" element={<History />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/admin" element={<AdminPanel />} />
+                  </Route>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </TooltipProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </LangProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

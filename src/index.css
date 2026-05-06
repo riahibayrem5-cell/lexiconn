@@ -845,3 +845,57 @@
     .book3d-block { transition: none !important; animation: none !important; }
   }
 }
+
+/* ============================================================
+   ARABIC + RTL — fonts & directional polish
+   Activated when <html lang="ar" dir="rtl">.
+   ============================================================ */
+html[lang="ar"] {
+  font-family: "Noto Naskh Arabic", "Amiri", Lora, Georgia, serif;
+}
+html[lang="ar"] body {
+  font-family: "Noto Naskh Arabic", "Amiri", Lora, Georgia, serif;
+  letter-spacing: 0;
+}
+html[lang="ar"] .font-display,
+html[lang="ar"] h1,
+html[lang="ar"] h2,
+html[lang="ar"] h3,
+html[lang="ar"] h4 {
+  font-family: "Amiri", "Noto Naskh Arabic", "Cormorant Garamond", Georgia, serif !important;
+  letter-spacing: 0 !important;
+}
+html[lang="ar"] .font-serif,
+html[lang="ar"] .serif {
+  font-family: "Noto Naskh Arabic", "Amiri", Lora, Georgia, serif !important;
+}
+/* Keep monospace for codes/IDs but render Arabic digits with the body font */
+html[lang="ar"] .mono,
+html[lang="ar"] .font-mono {
+  font-family: "JetBrains Mono", "Noto Naskh Arabic", ui-monospace, monospace;
+  letter-spacing: 0.18em;
+}
+html[lang="ar"] .eyebrow {
+  letter-spacing: 0.18em;
+}
+
+/* RTL: flip a few directional utilities that can't be auto-flipped */
+html[dir="rtl"] .lucide-chevron-right { transform: scaleX(-1); }
+html[dir="rtl"] .lucide-chevron-left { transform: scaleX(-1); }
+html[dir="rtl"] .lucide-arrow-right { transform: scaleX(-1); }
+html[dir="rtl"] .lucide-arrow-left { transform: scaleX(-1); }
+html[dir="rtl"] .lucide-send { transform: scaleX(-1); }
+
+/* The shelf is intrinsically directional — keep spines reading L→R even in RTL */
+html[dir="rtl"] .shelf-row,
+html[dir="rtl"] .shelf-scroller {
+  direction: ltr;
+}
+
+/* Italic is unusual in Arabic; render emphasis as bold instead */
+html[lang="ar"] em,
+html[lang="ar"] i,
+html[lang="ar"] .italic {
+  font-style: normal;
+  font-weight: 700;
+}
