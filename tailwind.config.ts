@@ -12,9 +12,11 @@ export default {
     },
     extend: {
       fontFamily: {
-        serif: ['Lora', 'Georgia', 'serif'],
-        display: ['"Cormorant Garamond"', '"Playfair Display"', 'Georgia', 'serif'],
+        serif: ['Lora', '"Noto Naskh Arabic"', 'Georgia', 'serif'],
+        display: ['"Cormorant Garamond"', '"Amiri"', '"Playfair Display"', 'Georgia', 'serif'],
         mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        arabic: ['"Amiri"', '"Noto Naskh Arabic"', 'Georgia', 'serif'],
+        "arabic-body": ['"Noto Naskh Arabic"', '"Amiri"', 'Georgia', 'serif'],
       },
       colors: {
         border: "hsl(var(--border))",
