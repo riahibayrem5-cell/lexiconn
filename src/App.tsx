@@ -37,7 +37,7 @@ const queryClient = new QueryClient({
 
 const RouteFallback = () => (
   <div className="min-h-screen grid place-items-center text-muted-foreground font-display tracking-[0.3em] text-xs">
-    LOADING…
+    <span className="lang-en">LOADING…</span>
   </div>
 );
 
