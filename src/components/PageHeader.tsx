@@ -6,24 +6,27 @@ import { useLang } from "@/lib/i18n";
 interface Props {
   eyebrow?: string;
   title: ReactNode;
+  titleMain?: string;
+  titleEmphasis?: string;
   subtitle?: ReactNode;
   right?: ReactNode;
 }
 
-export function PageHeader({ eyebrow, title, subtitle, right }: Props) {
+export function PageHeader({ eyebrow, title, titleMain, titleEmphasis, subtitle, right }: Props) {
   const { pathname } = useLocation();
   const { settings } = useAdminSettings();
   const { t } = useLang();
   const copy = settings.pages[pathname as PageKey];
 
-  // Translate via dictionary; falls through to original strings in English.
   const tx = (s?: string) => (s ? t(s, s) : s);
 
   const renderedEyebrow = tx(copy?.eyebrow ?? eyebrow);
-  const renderedTitle = copy ? (
+  const main = copy?.title ?? titleMain;
+  const emph = copy?.emphasis ?? titleEmphasis;
+  const renderedTitle = main || emph ? (
     <>
-      {tx(copy.title)}{" "}
-      <em className="font-display italic text-primary/90">{tx(copy.emphasis)}</em>
+      {tx(main)}{main && emph ? " " : ""}
+      {emph && <em className="font-display italic text-primary/90">{tx(emph)}</em>}
     </>
   ) : (
     typeof title === "string" ? tx(title) : title
