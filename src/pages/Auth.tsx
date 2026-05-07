@@ -133,7 +133,7 @@ export default function Auth() {
               className="w-full bg-primary text-primary-foreground hover:bg-primary-glow font-display tracking-wider"
             >
               {busy && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {mode === "signup" ? "Create my library" : "Open my library"}
+              {mode === "signup" ? t("Create your library", "Create my library") : t("Sign in", "Open my library")}
             </Button>
           </form>
 
