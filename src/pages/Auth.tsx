@@ -74,9 +74,9 @@ export default function Auth() {
           <div className="inline-flex items-center justify-center w-14 h-14 border border-primary/60 font-display text-primary text-3xl lamp-flicker mx-auto mb-5">
             L
           </div>
-          <h1 className="font-display text-4xl text-foreground">LEXICON</h1>
+          <h1 className="font-display text-4xl text-foreground">{lang === "ar" ? "ليكسيكون" : "LEXICON"}</h1>
           <p className="mt-3 italic text-muted-foreground text-sm">
-            Sign in to sync your shelf, or keep browsing as a guest.
+            {t("Sign in to sync", "Sign in to sync your shelf, or keep browsing as a guest.")}
           </p>
         </div>
 
@@ -85,11 +85,11 @@ export default function Auth() {
             <button
               onClick={() => setMode("signin")}
               className={`flex-1 py-2 transition-colors ${mode === "signin" ? "text-primary border-b border-primary" : "text-muted-foreground hover:text-foreground"}`}
-            >Sign In</button>
+            >{t("Sign in", "Sign In")}</button>
             <button
               onClick={() => setMode("signup")}
               className={`flex-1 py-2 transition-colors ${mode === "signup" ? "text-primary border-b border-primary" : "text-muted-foreground hover:text-foreground"}`}
-            >Create Account</button>
+            >{t("Create your library", "Create Account")}</button>
           </div>
 
           <form onSubmit={submit} className="space-y-4">
