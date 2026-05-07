@@ -71,12 +71,7 @@ const AR: Record<string, string> = {
 
   // Page headers
   "The Shelf": "الرف",
-  "The library,": "المكتبة،",
-  "in spines": "بالأسلاك",
   "The Oracle": "العرّاف",
-  "Ask,": "اسأل،",
-  "earnestly": "بصدق",
-  "An AI fluent in your library. The more you read, the sharper it gets.": "ذكاء اصطناعي يجيد مكتبتك. كلما قرأتَ أكثر، صار أحدّ.",
 
   // PDF / dossier UI bits
   "Export PDF": "تصدير PDF",
