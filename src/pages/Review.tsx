@@ -24,7 +24,9 @@ export default function Review() {
     <div className="min-h-screen pb-24">
       <PageHeader
         eyebrow="Review Desk"
-        title={<>Turn the shelf into <em className="font-display italic text-primary/90">action</em></>}
+        title=""
+        titleMain="Turn the shelf into"
+        titleEmphasis="action"
         subtitle="A productive queue for neglected books, missing notes, and next reading decisions."
       />
 

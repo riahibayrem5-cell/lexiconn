@@ -1,3 +1,4 @@
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -67,17 +68,13 @@ Deno.serve(async (req) => {
       ? " IMPORTANT: Respond entirely in fluent literary Modern Standard Arabic (الفصحى). Use proper Arabic punctuation. For the 'what-next' JSON mode, render `title`, `author`, `description`, and `qualitySignal` in Arabic, BUT keep `searchQuery` in English/Latin script (it is used to query an English book catalog). For all other modes, every word of the response must be Arabic."
       : "";
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiChat({
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYS + arabicSys },
           { role: "user", content: prompt },
         ],
-      }),
-    });
+      });
 
     if (r.status === 429) {
       return new Response(JSON.stringify({ error: "Rate limit reached. A breath, then try again." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -1,5 +1,6 @@
 // Generates a beautifully designed shareable quote card image via AI image generation.
 // Returns a data URL that the client downloads as PNG.
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -44,19 +45,12 @@ COMPOSITION: generous margins, the quote dominates the canvas, centered or rule-
 
 RULES: NO emojis. NO watermarks. NO QR codes. NO Lorem Ipsum. The quote text and attribution MUST be spelled exactly as given. Sophisticated, adult, literary — never cartoonish.`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const aiRes = await aiChat({
         // Pro image model for legible typography
         model: "google/gemini-3-pro-image-preview",
         messages: [{ role: "user", content: prompt }],
         modalities: ["image", "text"],
-      }),
-    });
+      });
 
     if (!aiRes.ok) {
       if (aiRes.status === 429) {

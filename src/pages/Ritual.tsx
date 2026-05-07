@@ -328,7 +328,9 @@ export default function Ritual() {
     <div className="min-h-screen pb-24">
       <PageHeader
         eyebrow="The Ritual"
-        title={<>An hour, <em className="font-display italic text-primary/90">at the desk</em></>}
+        title=""
+        titleMain="An hour,"
+        titleEmphasis="at the desk"
         subtitle="Sit. Begin the timer. The page is enough."
       />
 

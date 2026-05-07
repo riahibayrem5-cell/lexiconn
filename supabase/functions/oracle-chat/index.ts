@@ -1,6 +1,7 @@
 // Oracle Chat — streaming, persona-aware, library-aware.
 // Receives the chat history + a "context pack" summarizing the user's library
 // + persona + model + reasoning effort and streams an SSE response.
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -72,11 +73,7 @@ Deno.serve(async (req) => {
       body.reasoning = { effort: reasoning };
     }
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    const r = await aiChat(body);
 
     if (r.status === 429) {
       return new Response(JSON.stringify({ error: "Rate limit reached. A breath, then try again." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });

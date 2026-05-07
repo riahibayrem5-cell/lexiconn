@@ -64,19 +64,11 @@ const AR: Record<string, string> = {
   "Choose your preferred language. The interface, brand, and AI responses will all switch.": "اختر لغتك المفضلة. ستتغير الواجهة والاسم وردود الذكاء الاصطناعي معًا.",
   "English": "الإنجليزية",
   "Arabic": "العربية",
-  "House": "تدبير",
-  "keeping": "المنزل",
   "The Workshop": "الورشة",
-  "Backup, import, choose a binding for your library.": "نسخ احتياطي، استيراد، واختيار تجليد لمكتبتك.",
 
   // Page headers
   "The Shelf": "الرف",
-  "The library,": "المكتبة،",
-  "in spines": "بالأسلاك",
   "The Oracle": "العرّاف",
-  "Ask,": "اسأل،",
-  "earnestly": "بصدق",
-  "An AI fluent in your library. The more you read, the sharper it gets.": "ذكاء اصطناعي يجيد مكتبتك. كلما قرأتَ أكثر، صار أحدّ.",
 
   // PDF / dossier UI bits
   "Export PDF": "تصدير PDF",
@@ -96,6 +88,100 @@ const AR: Record<string, string> = {
   "Spoilers ahead": "تحذير: حرق أحداث",
   "Reveal": "اكشف",
   "Hide": "أخفِ",
+
+  // Page headers — Shelf
+  "The library,": "المكتبة،",
+  "in spines": "بالأسلاك",
+  "Your collection. Hover a spine for the marrow. Click to enter the dossier.": "مجموعتك. مرّر فوق الكتاب لترى لبّه. انقر لتدخل الملف.",
+
+  // Quotes
+  "The Vault": "الخزانة",
+  "What you": "ما",
+  "refused to forget": "رفضتَ نسيانه",
+  "Every line you saved, in one room. Search. Export. Re-read.": "كل سطر حفظته، في غرفة واحدة. ابحث. صدّر. أعد القراءة.",
+
+  // Recommendations
+  "Smart Recommendations": "توصيات ذكية",
+  "Editions across the": "طبعات عبر",
+  "tongues of the world": "ألسنة العالم",
+  "Type a book, however roughly. We identify it, then surface the best editions in English, Arabic, French, and German — with ISBN and publisher — plus AI-powered companion tools.": "اكتب اسم كتاب، ولو بتقريب. نتعرّف عليه ثم نُبرز أفضل طبعاته بالإنجليزية والعربية والفرنسية والألمانية — مع الرقم الدولي والناشر — إضافة إلى أدوات مرافقة بالذكاء الاصطناعي.",
+
+  // Review
+  "Turn the shelf into": "حوّل الرف إلى",
+  "action": "فعل",
+  "A productive queue for neglected books, missing notes, and next reading decisions.": "قائمة منتِجة للكتب المهملة والملاحظات الناقصة وقرارات القراءة التالية.",
+
+  // History
+  "The Memory Vault": "خزانة الذاكرة",
+  "Every dossier you've composed, kept forever. Open a book on your shelf and tap Generate to add it here.": "كل ملف ركّبته، محفوظ إلى الأبد. افتح كتابًا في رفك واضغط «أنشِئ» لإضافته هنا.",
+
+  // Archive
+  "The Archive": "الأرشيف",
+  "Year of": "سنة",
+  "A retrospective. Your reading life with a body.": "استرجاع. حياتك القرائية في جسد واحد.",
+
+  // Ritual
+  "The Ritual": "الطقس",
+  "An hour,": "ساعة،",
+  "at the desk": "على المكتب",
+  "Sit. Begin the timer. The page is enough.": "اجلس. ابدأ المؤقت. الصفحة تكفي.",
+
+  // Oracle
+  "The Concierge": "العرّاف",
+  "Ask,": "اسأل،",
+  "earnestly": "بصدق",
+  "An AI fluent in your library. Tune voice, lens, model and depth — then converse.": "ذكاء اصطناعي يُجيد مكتبتك. اضبط الصوت والعدسة والنموذج والعمق، ثم حاوِر.",
+
+  // Settings
+  "House": "تدبير",
+  "keeping": "المنزل",
+  "Backup, import, choose a binding for your library.": "نسخ احتياطي، استيراد، واختيار تجليد لمكتبتك.",
+
+  // Admin
+  "Edit the": "حرّر",
+  "whole website": "الموقع كله",
+  "Customize identity, navigation, copy, behavior, recommendations, and visual depth.": "خصّص الهوية والتنقّل والنصوص والسلوك والتوصيات والعمق البصري.",
+
+  // Auth
+  "Welcome back": "أهلاً بعودتك",
+  "Create your library": "أنشئ مكتبتك",
+  "Sign in to your library.": "ادخل إلى مكتبتك.",
+  "A reading life, kept with care.": "حياة قرائية، مصانة بعناية.",
+  "Email": "البريد الإلكتروني",
+  "Password": "كلمة المرور",
+  "Display name": "الاسم الظاهر",
+  "Sign up": "أنشئ حسابًا",
+  "Continue with Google": "تابع مع جوجل",
+  "Already have an account?": "هل لديك حساب؟",
+  "New here?": "جديد هنا؟",
+  "Account created. Welcome to your library.": "تم إنشاء الحساب. أهلاً بك في مكتبتك.",
+  "Authentication failed": "فشل التحقق",
+
+  // 404
+  "Page not found": "الصفحة غير موجودة",
+  "Return to library": "عُد إلى المكتبة",
+
+  // Generic actions / status
+  "Saved live": "محفوظ مباشرة",
+  "Everything is saved automatically": "كل شيء يُحفظ تلقائيًا",
+  "Add book": "أضف كتابًا",
+  "Edit book": "حرّر الكتاب",
+  "Title": "العنوان",
+  "Author": "المؤلف",
+  "Year": "السنة",
+  "Status": "الحالة",
+  "Tags": "الوسوم",
+  "Notes": "ملاحظات",
+  "Rating": "تقييم",
+  "Close": "أغلق",
+  "Open": "افتح",
+  "Want to read": "أريد قراءته",
+  "Reading": "أقرأ",
+  "Finished": "أنهيت",
+  "Abandoned": "هجرته",
+  "Rereading": "أعيد قراءته",
+  "Export": "صدّر",
+  "Import": "استورد",
 };
 
 export function LangProvider({ children }: { children: ReactNode }) {

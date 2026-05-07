@@ -1,6 +1,7 @@
 // Generate a rich, generous, structured dossier about a book.
 // Returns: summary, themes, 5 main ideas, characters, plot timeline,
 // key quotes, symbols/motifs, lessons, criticisms, recommended-if-you-liked, spoilers.
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -158,21 +159,17 @@ Deno.serve(async (req) => {
       ? `Extend the dossier for: "${title}" by ${author}${year ? ` (${year})` : ""}.\n\nPREVIOUS DOSSIER:\n${JSON.stringify(existing, null, 2)}\n\nReturn a richer, deeper version with NEW insights. Do not just copy — go further.${isArabic ? " Respond entirely in Arabic." : ""}`
       : `Build the complete dossier for: "${title}" by ${author}${year ? ` (${year})` : ""}.${isArabic ? " Respond entirely in Arabic." : ""}`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userContent },
-        ],
-        tools: [{
-          type: "function",
-          function: { name: "build_dossier", parameters: SCHEMA },
-        }],
-        tool_choice: { type: "function", function: { name: "build_dossier" } },
-      }),
+    const r = await aiChat({
+      model: "google/gemini-2.5-pro",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      tools: [{
+        type: "function",
+        function: { name: "build_dossier", description: "Return the dossier", parameters: SCHEMA },
+      }],
+      tool_choice: { type: "function", function: { name: "build_dossier" } },
     });
 
     if (r.status === 429) {

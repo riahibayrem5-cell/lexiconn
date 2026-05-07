@@ -1,5 +1,6 @@
 // Returns 5–7 accurate, well-known quotes for a given book.
 // Uses Lovable AI Gemini with structured tool-calling so the output is reliable JSON.
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -37,13 +38,7 @@ Deno.serve(async (req) => {
 
     const user = `Return ${count} of the most resonant, widely-cited verbatim quotations from the book "${title}" by ${author}${year ? ` (${year})` : ""}. Prefer lines that capture the book's central themes, philosophy, or most memorable prose. Each quote MUST be word-for-word accurate.${isArabic ? " Output every field in Arabic." : ""}`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const aiRes = await aiChat({
         model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: system },
@@ -77,8 +72,7 @@ Deno.serve(async (req) => {
           },
         }],
         tool_choice: { type: "function", function: { name: "return_quotes" } },
-      }),
-    });
+      });
 
     if (!aiRes.ok) {
       if (aiRes.status === 429) {

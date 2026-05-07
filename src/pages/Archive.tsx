@@ -69,7 +69,9 @@ export default function Archive() {
     <div className="min-h-screen pb-24">
       <PageHeader
         eyebrow="The Archive"
-        title={<>Year of <em className="font-display italic text-primary/90">{year}</em></>}
+        title=""
+        titleMain="Year of"
+        titleEmphasis={String(year)}
         subtitle="A retrospective. Your reading life with a body."
         right={
           <select value={year} onChange={(e) => setYear(Number(e.target.value))}
