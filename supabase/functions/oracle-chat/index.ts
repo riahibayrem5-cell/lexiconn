@@ -1,6 +1,7 @@
 // Oracle Chat — streaming, persona-aware, library-aware.
 // Receives the chat history + a "context pack" summarizing the user's library
 // + persona + model + reasoning effort and streams an SSE response.
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
