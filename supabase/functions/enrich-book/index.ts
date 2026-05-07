@@ -1,3 +1,4 @@
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -17,10 +18,7 @@ Deno.serve(async (req) => {
 
     const prompt = `For the book "${title}" by ${author}, return concise library enrichment only: 5 lowercase category tags, whether it is fiction, a one-sentence shelf note, and a conservative estimated page count if exact metadata is missing. Use edition clues only: ISBN ${isbn ?? "unknown"}, year ${year ?? "unknown"}, format ${format ?? "unknown"}, source subjects ${(subjects ?? []).join(", ")}. Page estimate must be an integer between 48 and 1400 or null if impossible. Do not invent cover art.`;
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiChat({
         model: "google/gemini-3-flash-preview",
         messages: [{ role: "user", content: prompt }],
         tools: [{
@@ -42,8 +40,7 @@ Deno.serve(async (req) => {
           }
         }],
         tool_choice: { type: "function", function: { name: "return_enrichment" } }
-      }),
-    });
+      });
 
     if (r.status === 429 || r.status === 402) {
       return new Response(JSON.stringify({ error: r.status === 429 ? "AI rate limit reached" : "AI credits exhausted", fallback: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });

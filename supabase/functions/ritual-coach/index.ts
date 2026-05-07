@@ -1,3 +1,4 @@
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -43,17 +44,13 @@ Deno.serve(async (req) => {
       ? " IMPORTANT: Respond entirely in fluent literary Modern Standard Arabic. For 'pick' mode, keep `bookTitle` exactly as it appears in the provided list (do NOT translate it), but write `reason` in Arabic."
       : "";
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiChat({
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYS + arabicSys },
           { role: "user", content: buildPrompt(mode, input) },
         ],
-      }),
-    });
+      });
 
     if (r.status === 429 || r.status === 402) {
       return new Response(JSON.stringify({ error: r.status === 429 ? "Rate limit. A breath, then try again." : "AI credits exhausted." }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });

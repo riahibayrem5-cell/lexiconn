@@ -1,3 +1,4 @@
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -15,10 +16,7 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiChat({
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "Parse a user's library-agent command. Return one action only. For book search/add, extract the real book title and author if stated; remove filler like 'a book by' and 'called'. Supported actions: add_book, search_book, remove_book, set_status, rate_book, tag_book, add_note, add_quote, move_book, navigate, recommend, export_library, unknown." },
@@ -50,8 +48,7 @@ Deno.serve(async (req) => {
           }
         }],
         tool_choice: { type: "function", function: { name: "command" } }
-      }),
-    });
+      });
 
     if (r.status === 429 || r.status === 402) {
       return new Response(JSON.stringify({ error: r.status === 429 ? "AI rate limit reached" : "AI credits exhausted" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });

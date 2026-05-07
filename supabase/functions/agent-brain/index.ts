@@ -1,3 +1,4 @@
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -16,17 +17,13 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY missing");
 
     if (mode === "qa") {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const r = await aiChat({
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: SYS_QA },
             { role: "user", content: `Reader's library digest:\n${libraryDigest}\n\nQuestion: ${message}` },
           ],
-        }),
-      });
+        });
       if (r.status === 429 || r.status === 402) {
         return new Response(JSON.stringify({ error: r.status === 429 ? "Rate limit. A breath, then try again." : "AI credits exhausted." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
@@ -36,10 +33,7 @@ Deno.serve(async (req) => {
     }
 
     // mode === "plan"
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiChat({
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYS_PLAN },
@@ -82,8 +76,7 @@ User said: "${message}"` },
           }
         }],
         tool_choice: { type: "function", function: { name: "plan" } }
-      }),
-    });
+      });
 
     if (r.status === 429 || r.status === 402) {
       return new Response(JSON.stringify({ error: r.status === 429 ? "Rate limit." : "AI credits exhausted." }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

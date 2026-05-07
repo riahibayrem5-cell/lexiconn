@@ -1,6 +1,7 @@
 // Smart multi-language edition finder.
 // Detects the book the user means, then returns best editions in
 // English, Arabic, French, and German with ISBN + cover + publisher data.
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -81,10 +82,7 @@ function pickBestEdition(items: any[], lang: string, langLabel: string): Edition
 async function detectCanonical(rawQuery: string, apiKey: string) {
   // Ask AI to canonicalize the query into a confident title/author guess.
   try {
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiChat({
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "You identify books from short or noisy queries. Return the canonical English title and original author. Never invent. If unsure, return your best single guess and a confidence 0-1." },
@@ -109,8 +107,7 @@ async function detectCanonical(rawQuery: string, apiKey: string) {
           },
         }],
         tool_choice: { type: "function", function: { name: "identify_book" } },
-      }),
-    });
+      });
     if (!r.ok) return null;
     const j = await r.json();
     const args = j?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
@@ -122,10 +119,7 @@ async function detectCanonical(rawQuery: string, apiKey: string) {
 
 async function suggestTools(book: { title: string; author: string }, apiKey: string) {
   try {
-    const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const r = await aiChat({
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "You recommend AI-powered reading and study tools that pair well with a specific book. Suggest real, well-known products. No invented URLs." },
@@ -159,8 +153,7 @@ async function suggestTools(book: { title: string; author: string }, apiKey: str
           },
         }],
         tool_choice: { type: "function", function: { name: "return_tools" } },
-      }),
-    });
+      });
     if (!r.ok) return [];
     const j = await r.json();
     const args = j?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
