@@ -1,6 +1,7 @@
 // Generate a rich, generous, structured dossier about a book.
 // Returns: summary, themes, 5 main ideas, characters, plot timeline,
 // key quotes, symbols/motifs, lessons, criticisms, recommended-if-you-liked, spoilers.
+import { aiChat } from "../_shared/ai.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
