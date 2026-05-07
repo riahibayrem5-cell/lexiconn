@@ -95,17 +95,17 @@ export default function Auth() {
           <form onSubmit={submit} className="space-y-4">
             {mode === "signup" && (
               <div className="space-y-1.5">
-                <Label className="eyebrow">Name</Label>
+                <Label className="eyebrow">{t("Display name", "Name")}</Label>
                 <Input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="What should we call you?"
+                  placeholder={t("Display name", "What should we call you?")}
                   className="bg-input border-border-strong/40 font-serif"
                 />
               </div>
             )}
             <div className="space-y-1.5">
-              <Label className="eyebrow">Email</Label>
+              <Label className="eyebrow">{t("Email")}</Label>
               <Input
                 type="email"
                 value={email}
@@ -116,7 +116,7 @@ export default function Auth() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="eyebrow">Password</Label>
+              <Label className="eyebrow">{t("Password")}</Label>
               <Input
                 type="password"
                 value={password}
