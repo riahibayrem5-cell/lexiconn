@@ -64,10 +64,7 @@ const AR: Record<string, string> = {
   "Choose your preferred language. The interface, brand, and AI responses will all switch.": "اختر لغتك المفضلة. ستتغير الواجهة والاسم وردود الذكاء الاصطناعي معًا.",
   "English": "الإنجليزية",
   "Arabic": "العربية",
-  "House": "تدبير",
-  "keeping": "المنزل",
   "The Workshop": "الورشة",
-  "Backup, import, choose a binding for your library.": "نسخ احتياطي، استيراد، واختيار تجليد لمكتبتك.",
 
   // Page headers
   "The Shelf": "الرف",
