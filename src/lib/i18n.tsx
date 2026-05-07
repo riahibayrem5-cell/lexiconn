@@ -107,7 +107,6 @@ const AR: Record<string, string> = {
   "Type a book, however roughly. We identify it, then surface the best editions in English, Arabic, French, and German — with ISBN and publisher — plus AI-powered companion tools.": "اكتب اسم كتاب، ولو بتقريب. نتعرّف عليه ثم نُبرز أفضل طبعاته بالإنجليزية والعربية والفرنسية والألمانية — مع الرقم الدولي والناشر — إضافة إلى أدوات مرافقة بالذكاء الاصطناعي.",
 
   // Review
-  "Review Desk": "طاولة المراجعة",
   "Turn the shelf into": "حوّل الرف إلى",
   "action": "فعل",
   "A productive queue for neglected books, missing notes, and next reading decisions.": "قائمة منتِجة للكتب المهملة والملاحظات الناقصة وقرارات القراءة التالية.",
