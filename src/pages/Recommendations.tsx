@@ -117,7 +117,9 @@ export default function Recommendations() {
     <div className="min-h-screen">
       <PageHeader
         eyebrow="Smart Recommendations"
-        title={<>Editions across the <em className="font-display italic text-primary/90">tongues of the world</em></>}
+        title=""
+        titleMain="Editions across the"
+        titleEmphasis="tongues of the world"
         subtitle="Type a book, however roughly. We identify it, then surface the best editions in English, Arabic, French, and German — with ISBN and publisher — plus AI-powered companion tools."
       />
 

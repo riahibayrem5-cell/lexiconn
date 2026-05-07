@@ -357,7 +357,9 @@ export default function Oracle() {
     <div className="min-h-screen pb-24">
       <PageHeader
         eyebrow="The Concierge"
-        title={<>Ask, <em className="font-display italic text-primary/90">earnestly</em></>}
+        title=""
+        titleMain="Ask,"
+        titleEmphasis="earnestly"
         subtitle="An AI fluent in your library. Tune voice, lens, model and depth — then converse."
       />
 

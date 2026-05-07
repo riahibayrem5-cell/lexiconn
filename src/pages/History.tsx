@@ -116,7 +116,9 @@ export default function History() {
     <div className="min-h-screen bg-background">
       <PageHeader
         eyebrow="The Memory Vault"
-        title="Book History"
+        title=""
+        titleMain=""
+        titleEmphasis="Book History"
         subtitle="Every dossier you've composed, kept forever. Open a book on your shelf and tap Generate to add it here."
       />
 

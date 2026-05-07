@@ -114,7 +114,9 @@ export default function Settings() {
     <div className="min-h-screen pb-24">
       <PageHeader
         eyebrow="The Workshop"
-        title={<>House <em className="font-display italic text-primary/90">keeping</em></>}
+        title=""
+        titleMain="House"
+        titleEmphasis="keeping"
         subtitle="Backup, import, choose a binding for your library."
       />
 

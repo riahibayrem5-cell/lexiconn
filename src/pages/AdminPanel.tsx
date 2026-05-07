@@ -27,7 +27,9 @@ export default function AdminPanel({ embedded = false }: { embedded?: boolean } 
       {!embedded && (
         <PageHeader
           eyebrow="Admin Panel"
-          title={<>Edit the <em className="font-display italic text-primary/90">whole website</em></>}
+          title=""
+          titleMain="Edit the"
+          titleEmphasis="whole website"
           subtitle="Customize identity, navigation, copy, behavior, recommendations, and visual depth."
           right={<Button onClick={() => toast.success("Everything is saved automatically")} className="bg-primary text-primary-foreground hover:bg-primary-glow font-display tracking-wider"><Save className="h-4 w-4 mr-2" /> Saved live</Button>}
         />

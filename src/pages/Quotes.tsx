@@ -71,7 +71,9 @@ export default function Quotes() {
     <div className="min-h-screen pb-24">
       <PageHeader
         eyebrow="The Vault"
-        title={<>What you <em className="font-display italic text-primary/90">refused to forget</em></>}
+        title=""
+        titleMain="What you"
+        titleEmphasis="refused to forget"
         subtitle="Every line you saved, in one room. Search. Export. Re-read."
       />
 

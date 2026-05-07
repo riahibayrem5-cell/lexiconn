@@ -168,7 +168,9 @@ export default function Shelf() {
     <div className="min-h-screen">
       <PageHeader
         eyebrow="The Shelf"
-        title={<>The library, <em className="font-display italic text-primary/90">in spines</em></>}
+        title=""
+        titleMain="The library,"
+        titleEmphasis="in spines"
         subtitle="Your collection. Hover a spine for the marrow. Click to enter the dossier."
         right={
           <div className="flex items-center gap-2">
