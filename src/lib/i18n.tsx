@@ -138,7 +138,6 @@ const AR: Record<string, string> = {
   "Backup, import, choose a binding for your library.": "نسخ احتياطي، استيراد، واختيار تجليد لمكتبتك.",
 
   // Admin
-  "Admin Panel": "لوحة الإدارة",
   "Edit the": "حرّر",
   "whole website": "الموقع كله",
   "Customize identity, navigation, copy, behavior, recommendations, and visual depth.": "خصّص الهوية والتنقّل والنصوص والسلوك والتوصيات والعمق البصري.",
